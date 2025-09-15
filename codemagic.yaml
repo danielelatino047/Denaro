@@ -73,16 +73,11 @@ workflows:
         script: |
           echo "=== Installing Dependencies ==="
           
-          # Fix React version conflicts first
-          echo "Fixing React version conflicts..."
-          npm install react@18.3.1 react-dom@18.3.1 --save --legacy-peer-deps
+          # Install dependencies with current versions
+          echo "Installing dependencies with current package.json versions..."
           
-          # Fix other critical version conflicts
-          npm install @expo/config-plugins@~8.0.8 --save --legacy-peer-deps
-          npm install @expo/prebuild-config@~8.0.8 --save --legacy-peer-deps
-          npm install expo-router@~4.0.9 --save --legacy-peer-deps
-          npm install react-native@0.76.3 --save --legacy-peer-deps
-          npm install lucide-react-native@0.460.0 --save --legacy-peer-deps
+          # First install core dependencies to establish baseline
+          npm install expo react react-dom react-native --legacy-peer-deps --force
           
           # Install remaining dependencies with conflict resolution
           npm install --legacy-peer-deps --no-optional --force
@@ -105,15 +100,32 @@ workflows:
           # Remove any existing Expo CLI installations
           npm uninstall -g @expo/cli expo-cli || true
           
-          # Install latest stable Expo CLI
+          # Clear npm cache
+          npm cache clean --force
+          
+          # Install latest stable Expo CLI compatible with current setup
           npm install -g @expo/cli@latest --force
           
-          # Verify installation
-          which expo
-          expo --version
+          # Add npm global bin to PATH explicitly
+          export PATH="$(npm config get prefix)/bin:$PATH"
+          echo "Updated PATH: $PATH"
           
-          # Test basic expo commands
-          expo doctor || echo "Expo doctor completed with warnings"
+          # Verify installation with explicit path
+          which expo || echo "Expo not found in PATH"
+          $(npm config get prefix)/bin/expo --version || echo "Direct expo call failed"
+          
+          # Create symlink if needed
+          if [ ! -f "/usr/local/bin/expo" ] && [ -f "$(npm config get prefix)/bin/expo" ]; then
+            sudo ln -sf "$(npm config get prefix)/bin/expo" "/usr/local/bin/expo" || echo "Symlink creation failed"
+          fi
+          
+          # Final verification
+          expo --version || {
+            echo "Expo CLI still not accessible, trying alternative installation"
+            # Alternative: Install locally and use npx
+            npm install @expo/cli@latest --save-dev
+            npx expo --version
+          }
           
       - name: Configure Expo Project
         script: |
@@ -146,16 +158,24 @@ workflows:
           export EXPO_NO_CACHE=1
           export NODE_OPTIONS="--max-old-space-size=8192"
           
-          # Ensure we have the correct config plugins
+          # Ensure we have the correct config plugins for current versions
           echo "Installing required prebuild dependencies..."
-          npm install @expo/config-plugins@~8.0.8 @expo/prebuild-config@~8.0.8 --save-dev --legacy-peer-deps
+          npm install @expo/config-plugins @expo/prebuild-config --save-dev --legacy-peer-deps --force
           
           # Clear any existing android directory
           rm -rf android
           
           # Run prebuild with detailed logging and error handling
           echo "Running expo prebuild..."
-          expo prebuild --platform android --clean --no-install --verbose 2>&1 | tee prebuild.log || {
+          
+          # Try expo command, fallback to npx if needed
+          EXPO_CMD="expo"
+          if ! command -v expo &> /dev/null; then
+            echo "expo command not found, using npx"
+            EXPO_CMD="npx expo"
+          fi
+          
+          $EXPO_CMD prebuild --platform android --clean --no-install --verbose 2>&1 | tee prebuild.log || {
             echo "Prebuild failed, analyzing error..."
             
             # Show the last 50 lines of the log for debugging
@@ -168,15 +188,15 @@ workflows:
             
             # Try prebuild again with different options
             echo "Retrying prebuild with npm install..."
-            expo prebuild --platform android --clean --verbose || {
+            $EXPO_CMD prebuild --platform android --clean --verbose || {
               echo "Second prebuild attempt failed, trying manual dependency resolution..."
               
-              # Manual dependency resolution
-              npm install react@18.3.1 react-dom@18.3.1 --force
+              # Manual dependency resolution with current versions
               npm install @react-native/gradle-plugin --save-dev --force
+              npm install @expo/config-plugins @expo/prebuild-config --save-dev --force
               
               # Final attempt
-              expo prebuild --platform android --clean --verbose
+              $EXPO_CMD prebuild --platform android --clean --verbose
             }
           }
           
