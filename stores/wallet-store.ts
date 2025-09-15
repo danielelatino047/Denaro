@@ -73,50 +73,89 @@ export const useWalletStore = create(
     (set, get) => ({
       initializeWallet: async () => {
         try {
+          console.log('Initializing wallet store...');
           const stored = await AsyncStorage.getItem(STORAGE_KEY);
-          if (stored) {
-            const data = JSON.parse(stored);
-            set({
-              ...data,
-              depositHistory: data.depositHistory.map((d: any) => ({
-                ...d,
-                timestamp: new Date(d.timestamp)
-              })),
-              withdrawalHistory: data.withdrawalHistory.map((w: any) => ({
-                ...w,
-                timestamp: new Date(w.timestamp)
-              })),
-              isInitialized: true,
-            });
-            
-            // Sync wallet balance with portfolio after loading
-            setTimeout(async () => {
-              try {
-                const { usePortfolioStore } = await import('./portfolio-store');
-                const portfolioStore = usePortfolioStore.getState();
-                if (portfolioStore.isInitialized) {
-                  const { usdtBalance } = get();
-                  console.log('Syncing wallet balance with portfolio on init:', usdtBalance);
-                  portfolioStore.updateBalance('USDT', usdtBalance, usdtBalance);
-                }
-              } catch (error) {
-                console.error('Error syncing wallet with portfolio on init:', error);
+          
+          if (stored && stored.trim()) {
+            try {
+              const data = JSON.parse(stored);
+              
+              // Validate data structure
+              if (data && typeof data === 'object') {
+                const validatedData = {
+                  walletAddresses: Array.isArray(data.walletAddresses) ? data.walletAddresses : generateUSDTAddresses(),
+                  depositHistory: Array.isArray(data.depositHistory) ? data.depositHistory.map((d: any) => {
+                    try {
+                      return {
+                        ...d,
+                        timestamp: d.timestamp ? new Date(d.timestamp) : new Date()
+                      };
+                    } catch {
+                      return { ...d, timestamp: new Date() };
+                    }
+                  }) : [],
+                  withdrawalHistory: Array.isArray(data.withdrawalHistory) ? data.withdrawalHistory.map((w: any) => {
+                    try {
+                      return {
+                        ...w,
+                        timestamp: w.timestamp ? new Date(w.timestamp) : new Date()
+                      };
+                    } catch {
+                      return { ...w, timestamp: new Date() };
+                    }
+                  }) : [],
+                  totalDeposited: typeof data.totalDeposited === 'number' ? data.totalDeposited : 0,
+                  totalWithdrawn: typeof data.totalWithdrawn === 'number' ? data.totalWithdrawn : 0,
+                  usdtBalance: typeof data.usdtBalance === 'number' ? data.usdtBalance : 10000,
+                  isInitialized: true,
+                };
+                
+                set(validatedData);
+                console.log('Wallet data loaded from storage');
+              } else {
+                throw new Error('Invalid wallet data structure');
               }
-            }, 200);
+            } catch (parseError) {
+              console.error('Error parsing stored wallet data:', parseError);
+              // Clear corrupted data and use defaults
+              await AsyncStorage.removeItem(STORAGE_KEY);
+              const addresses = generateUSDTAddresses();
+              set({
+                walletAddresses: addresses,
+                depositHistory: [],
+                withdrawalHistory: [],
+                totalDeposited: 0,
+                totalWithdrawn: 0,
+                usdtBalance: 10000,
+                isInitialized: true,
+              });
+              await useWalletStore.getState().saveToStorage();
+            }
           } else {
+            console.log('No stored wallet data, using defaults');
             // Initialize with generated USDT addresses
             const addresses = generateUSDTAddresses();
             set({
               walletAddresses: addresses,
+              depositHistory: [],
+              withdrawalHistory: [],
+              totalDeposited: 0,
+              totalWithdrawn: 0,
+              usdtBalance: 10000,
               isInitialized: true,
             });
-            await (get() as any).saveToStorage();
+            await useWalletStore.getState().saveToStorage();
           }
         } catch (error) {
-          console.error("Error initializing wallet:", error);
-          // Initialize with default addresses on error
+          console.error("Critical error initializing wallet:", error);
+          // Fallback to safe defaults
           set({
             walletAddresses: generateUSDTAddresses(),
+            depositHistory: [],
+            withdrawalHistory: [],
+            totalDeposited: 0,
+            totalWithdrawn: 0,
+            usdtBalance: 10000,
             isInitialized: true,
           });
         }

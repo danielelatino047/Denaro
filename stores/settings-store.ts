@@ -69,13 +69,49 @@ export const useSettingsStore = create(
       
       loadSettings: async () => {
         try {
+          console.log('Loading settings...');
           const stored = await AsyncStorage.getItem('app-settings');
-          if (stored) {
-            const parsedSettings = JSON.parse(stored);
-            set({ settings: parsedSettings });
+          
+          if (stored && stored.trim()) {
+            try {
+              const parsedSettings = JSON.parse(stored);
+              
+              // Validate settings structure
+              if (parsedSettings && typeof parsedSettings === 'object') {
+                const { settings } = get();
+                const validatedSettings = {
+                  ...settings,
+                  ...parsedSettings,
+                  // Ensure required nested objects exist
+                  notifications: {
+                    ...settings.notifications,
+                    ...(parsedSettings.notifications || {})
+                  },
+                  apiKeys: {
+                    ...settings.apiKeys,
+                    ...(parsedSettings.apiKeys || {})
+                  },
+                  walletConnect: {
+                    ...settings.walletConnect,
+                    ...(parsedSettings.walletConnect || {})
+                  }
+                };
+                
+                set({ settings: validatedSettings });
+                console.log('Settings loaded successfully');
+              } else {
+                console.log('Invalid settings format, using defaults');
+              }
+            } catch (parseError) {
+              console.error('Error parsing settings:', parseError);
+              // Clear corrupted settings
+              await AsyncStorage.removeItem('app-settings');
+            }
+          } else {
+            console.log('No stored settings found, using defaults');
           }
         } catch (error) {
-          console.error('Error loading settings:', error);
+          console.error('Critical error loading settings:', error);
         }
       },
     })

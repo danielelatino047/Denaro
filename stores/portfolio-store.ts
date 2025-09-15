@@ -79,42 +79,68 @@ export const usePortfolioStore = create(
     (set, get) => ({
       initializePortfolio: async () => {
         try {
+          console.log('Initializing portfolio store...');
           const stored = await AsyncStorage.getItem(STORAGE_KEY);
-          if (stored) {
-            const data = JSON.parse(stored);
-            set({
-              ...data,
-              transactions: data.transactions.map((t: any) => ({
-                ...t,
-                timestamp: new Date(t.timestamp)
-              })),
-              lastUpdated: new Date(data.lastUpdated),
-              isInitialized: true,
-            });
+          
+          if (stored && stored.trim()) {
+            try {
+              const data = JSON.parse(stored);
+              
+              // Validate data structure
+              if (data && typeof data === 'object') {
+                const validatedData = {
+                  balances: Array.isArray(data.balances) ? data.balances : initialBalances,
+                  totalValue: typeof data.totalValue === 'number' ? data.totalValue : 0,
+                  dailyPnL: typeof data.dailyPnL === 'number' ? data.dailyPnL : 0,
+                  transactions: Array.isArray(data.transactions) ? data.transactions.map((t: any) => {
+                    try {
+                      return {
+                        ...t,
+                        timestamp: t.timestamp ? new Date(t.timestamp) : new Date()
+                      };
+                    } catch {
+                      return { ...t, timestamp: new Date() };
+                    }
+                  }) : [],
+                  lastUpdated: data.lastUpdated ? new Date(data.lastUpdated) : new Date(),
+                  isInitialized: true,
+                };
+                
+                set(validatedData);
+                console.log('Portfolio data loaded from storage');
+              } else {
+                throw new Error('Invalid data structure');
+              }
+            } catch (parseError) {
+              console.error('Error parsing stored portfolio data:', parseError);
+              // Clear corrupted data and use defaults
+              await AsyncStorage.removeItem(STORAGE_KEY);
+              set({ 
+                balances: initialBalances,
+                totalValue: initialBalances.reduce((sum, balance) => sum + balance.usdValue, 0),
+                isInitialized: true 
+              });
+            }
           } else {
-            set({ isInitialized: true });
+            console.log('No stored portfolio data, using defaults');
+            set({ 
+              balances: initialBalances,
+              totalValue: initialBalances.reduce((sum, balance) => sum + balance.usdValue, 0),
+              isInitialized: true 
+            });
           }
           
-          // Sync with wallet store USDT balance
-          setTimeout(async () => {
-            try {
-              const { useWalletStore } = await import('./wallet-store');
-              const walletState = useWalletStore.getState();
-              if (walletState.isInitialized) {
-                const { balances } = get();
-                const usdtBalance = balances.find(b => b.symbol === 'USDT');
-                if (usdtBalance && usdtBalance.amount !== walletState.usdtBalance) {
-                  console.log('Syncing portfolio USDT with wallet:', walletState.usdtBalance);
-                  usePortfolioStore.getState().updateBalance('USDT', walletState.usdtBalance, walletState.usdtBalance);
-                }
-              }
-            } catch (error) {
-              console.error('Error syncing with wallet store:', error);
-            }
-          }, 100);
         } catch (error) {
-          console.error("Error initializing portfolio:", error);
-          set({ isInitialized: true });
+          console.error("Critical error initializing portfolio:", error);
+          // Fallback to safe defaults
+          set({ 
+            balances: initialBalances,
+            totalValue: initialBalances.reduce((sum, balance) => sum + balance.usdValue, 0),
+            dailyPnL: 0,
+            transactions: [],
+            lastUpdated: new Date(),
+            isInitialized: true 
+          });
         }
       },
 
@@ -161,9 +187,15 @@ export const usePortfolioStore = create(
           lastUpdated: new Date()
         });
         
-        // Save to storage
+        // Save to storage with error handling
         setTimeout(() => {
-          (get() as any).saveToStorage();
+          try {
+            usePortfolioStore.getState().saveToStorage().catch((error: any) => {
+              console.error('Error saving portfolio to storage:', error);
+            });
+          } catch (error) {
+            console.error('Error accessing saveToStorage:', error);
+          }
         }, 100);
       },
       
@@ -175,9 +207,15 @@ export const usePortfolioStore = create(
         };
         set({ transactions: [newTransaction, ...transactions] });
         
-        // Save to storage
+        // Save to storage with error handling
         setTimeout(() => {
-          (get() as any).saveToStorage();
+          try {
+            usePortfolioStore.getState().saveToStorage().catch((error: any) => {
+              console.error('Error saving portfolio to storage:', error);
+            });
+          } catch (error) {
+            console.error('Error accessing saveToStorage:', error);
+          }
         }, 100);
       },
       
