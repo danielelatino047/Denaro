@@ -73,13 +73,28 @@ workflows:
         script: |
           echo "=== Installing Dependencies ==="
           
-          # Install with exact versions to avoid conflicts
-          npm install --legacy-peer-deps --no-optional --verbose
+          # Fix React version conflicts first
+          echo "Fixing React version conflicts..."
+          npm install react@18.3.1 react-dom@18.3.1 --save --legacy-peer-deps
+          
+          # Fix other critical version conflicts
+          npm install @expo/config-plugins@~8.0.8 --save --legacy-peer-deps
+          npm install @expo/prebuild-config@~8.0.8 --save --legacy-peer-deps
+          npm install expo-router@~4.0.9 --save --legacy-peer-deps
+          npm install react-native@0.76.3 --save --legacy-peer-deps
+          npm install lucide-react-native@0.460.0 --save --legacy-peer-deps
+          
+          # Install remaining dependencies with conflict resolution
+          npm install --legacy-peer-deps --no-optional --force
+          
+          # Force resolve any remaining conflicts
+          npm audit fix --force || echo "Audit fix completed with warnings"
           
           # Verify critical packages
           echo "Verifying package installation:"
           npm list expo || echo "Expo package check failed"
           npm list expo-router || echo "Expo Router package check failed"
+          npm list react || echo "React package check failed"
           
           echo "Dependencies installed successfully"
           
@@ -129,24 +144,38 @@ workflows:
           # Set environment variables for prebuild
           export EXPO_NO_TELEMETRY=1
           export EXPO_NO_CACHE=1
+          export NODE_OPTIONS="--max-old-space-size=8192"
           
-          # Run prebuild with detailed logging
+          # Ensure we have the correct config plugins
+          echo "Installing required prebuild dependencies..."
+          npm install @expo/config-plugins@~8.0.8 @expo/prebuild-config@~8.0.8 --save-dev --legacy-peer-deps
+          
+          # Clear any existing android directory
+          rm -rf android
+          
+          # Run prebuild with detailed logging and error handling
           echo "Running expo prebuild..."
-          expo prebuild --platform android --clean --no-install --verbose || {
-            echo "Prebuild failed, trying alternative approach..."
+          expo prebuild --platform android --clean --no-install --verbose 2>&1 | tee prebuild.log || {
+            echo "Prebuild failed, analyzing error..."
             
-            # Try with npm install
+            # Show the last 50 lines of the log for debugging
+            echo "Last 50 lines of prebuild log:"
+            tail -50 prebuild.log
+            
+            # Try to fix common dependency issues
+            echo "Attempting to fix dependency conflicts..."
+            npm install --legacy-peer-deps --force
+            
+            # Try prebuild again with different options
+            echo "Retrying prebuild with npm install..."
             expo prebuild --platform android --clean --verbose || {
-              echo "Second prebuild attempt failed, checking for issues..."
+              echo "Second prebuild attempt failed, trying manual dependency resolution..."
               
-              # Check if we have required dependencies
-              npm list @expo/config-plugins || echo "Missing @expo/config-plugins"
-              npm list @expo/prebuild-config || echo "Missing @expo/prebuild-config"
+              # Manual dependency resolution
+              npm install react@18.3.1 react-dom@18.3.1 --force
+              npm install @react-native/gradle-plugin --save-dev --force
               
-              # Install missing dependencies if needed
-              npm install @expo/config-plugins @expo/prebuild-config --save-dev
-              
-              # Try one more time
+              # Final attempt
               expo prebuild --platform android --clean --verbose
             }
           }
@@ -156,6 +185,8 @@ workflows:
             echo "ERROR: Android directory not created after prebuild!"
             echo "Current directory contents:"
             ls -la
+            echo "Checking prebuild log for errors:"
+            cat prebuild.log | grep -i error || echo "No explicit errors found in log"
             exit 1
           fi
           
@@ -166,13 +197,30 @@ workflows:
           # Verify essential Android files
           if [ ! -f "android/gradlew" ]; then
             echo "ERROR: Gradle wrapper not found!"
+            echo "Android app directory contents:"
+            ls -la android/app/ || echo "No app directory"
             exit 1
           fi
           
           if [ ! -f "android/app/build.gradle" ]; then
             echo "ERROR: App build.gradle not found!"
+            echo "Available gradle files:"
+            find android -name "*.gradle" -type f || echo "No gradle files found"
             exit 1
           fi
+          
+          # Fix any potential gradle issues
+          echo "Checking and fixing gradle configuration..."
+          cd android
+          
+          # Ensure gradle wrapper has correct permissions
+          chmod +x gradlew
+          
+          # Check gradle version compatibility
+          echo "Gradle wrapper version:"
+          ./gradlew --version || echo "Gradle version check failed"
+          
+          cd ..
           
       - name: Configure Android Build
         script: |
@@ -205,46 +253,90 @@ workflows:
           echo "=== Building Debug APK ==="
           cd android
           
+          # Set Java options for better memory management
+          export JAVA_OPTS="-Xmx4g -XX:MaxMetaspaceSize=1g"
+          export GRADLE_OPTS="-Xmx4g -XX:MaxMetaspaceSize=1g -Dorg.gradle.daemon=false"
+          
           # Clean any previous builds
           echo "Cleaning previous builds..."
-          ./gradlew clean --stacktrace --info
+          ./gradlew clean --stacktrace --info --no-daemon
           
-          # Build debug APK with detailed logging
+          # Check Android SDK and build tools
+          echo "Verifying Android SDK setup..."
+          ls -la "$ANDROID_SDK_ROOT/build-tools/" || echo "Build tools directory not found"
+          ls -la "$ANDROID_SDK_ROOT/platforms/" || echo "Platforms directory not found"
+          
+          # Build debug APK with detailed logging and error handling
           echo "Building debug APK..."
-          ./gradlew assembleDebug --stacktrace --info --no-daemon --max-workers=2 || {
-            echo "Build failed! Checking for common issues..."
+          ./gradlew assembleDebug --stacktrace --info --no-daemon --max-workers=2 2>&1 | tee ../build.log || {
+            echo "Build failed! Analyzing error..."
+            
+            # Show build log for debugging
+            echo "Last 100 lines of build log:"
+            tail -100 ../build.log
+            
+            # Check for common issues
+            echo "Checking for common build issues..."
             
             # Check if we have build tools
-            ls -la "$ANDROID_SDK_ROOT/build-tools/" || echo "Build tools not found"
+            if [ ! -d "$ANDROID_SDK_ROOT/build-tools/" ]; then
+              echo "ERROR: Android build tools not found!"
+              exit 1
+            fi
             
             # Check gradle daemon status
             ./gradlew --status || true
             
+            # Kill any existing gradle daemons
+            ./gradlew --stop || true
+            
             # Try building again with different settings
-            echo "Retrying build with different settings..."
-            ./gradlew assembleDebug --stacktrace --debug --no-daemon --offline || {
+            echo "Retrying build with conservative settings..."
+            ./gradlew assembleDebug --stacktrace --info --no-daemon --max-workers=1 --no-parallel || {
               echo "Second build attempt failed!"
+              echo "Checking for specific error patterns..."
+              grep -i "error" ../build.log | tail -10 || echo "No specific errors found"
               exit 1
             }
           }
           
           # Verify APK was created
           echo "Checking for generated APK..."
-          find app/build/outputs -name "*.apk" -type f
+          find app/build/outputs -name "*.apk" -type f 2>/dev/null || echo "No APK files found yet"
           
-          if [ ! -f "app/build/outputs/apk/debug/app-debug.apk" ]; then
-            echo "ERROR: Expected debug APK not found!"
+          # Check multiple possible locations for the APK
+          APK_LOCATIONS=(
+            "app/build/outputs/apk/debug/app-debug.apk"
+            "app/build/outputs/apk/debug/app-universal-debug.apk"
+            "app/build/outputs/apk/debug/app-arm64-v8a-debug.apk"
+            "app/build/outputs/apk/debug/app-armeabi-v7a-debug.apk"
+          )
+          
+          APK_FOUND=""
+          for apk_path in "${APK_LOCATIONS[@]}"; do
+            if [ -f "$apk_path" ]; then
+              APK_FOUND="$apk_path"
+              echo "Found APK at: $apk_path"
+              break
+            fi
+          done
+          
+          if [ -z "$APK_FOUND" ]; then
+            echo "ERROR: No debug APK found in expected locations!"
             echo "Build outputs directory structure:"
-            find app/build/outputs -type f || echo "No build outputs found"
+            find app/build -name "*.apk" -type f 2>/dev/null || echo "No APK files found anywhere"
+            echo "Complete build outputs:"
+            find app/build/outputs -type f 2>/dev/null || echo "No build outputs found"
             exit 1
           fi
           
           echo "APK build successful!"
-          ls -la app/build/outputs/apk/debug/
+          ls -la app/build/outputs/apk/debug/ 2>/dev/null || echo "Debug directory listing failed"
           
           # Get APK info
-          APK_SIZE=$(stat -f%z app/build/outputs/apk/debug/app-debug.apk 2>/dev/null || stat -c%s app/build/outputs/apk/debug/app-debug.apk)
+          APK_SIZE=$(stat -f%z "$APK_FOUND" 2>/dev/null || stat -c%s "$APK_FOUND" 2>/dev/null || echo "unknown")
           echo "APK size: $APK_SIZE bytes"
+          echo "APK location: $APK_FOUND"
           
       - name: Prepare Artifacts
         script: |
@@ -253,27 +345,51 @@ workflows:
           # Create artifacts directory
           mkdir -p $CM_BUILD_DIR/artifacts
           
-          # Copy APK with descriptive names
+          # Find the actual APK file
+          cd android
+          APK_FILES=($(find app/build/outputs -name "*.apk" -type f 2>/dev/null))
+          
+          if [ ${#APK_FILES[@]} -eq 0 ]; then
+            echo "ERROR: No APK files found for artifacts!"
+            echo "Searching entire build directory:"
+            find app/build -name "*.apk" -type f 2>/dev/null || echo "No APK files found anywhere"
+            exit 1
+          fi
+          
+          echo "Found ${#APK_FILES[@]} APK file(s):"
+          for apk in "${APK_FILES[@]}"; do
+            echo "  - $apk"
+          done
+          
+          # Copy all found APKs with descriptive names
           TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-          APK_SOURCE="android/app/build/outputs/apk/debug/app-debug.apk"
           
-          # Copy with timestamp
-          cp "$APK_SOURCE" "$CM_BUILD_DIR/artifacts/arbitrageswap-ai-debug-$TIMESTAMP.apk"
+          for i in "${!APK_FILES[@]}"; do
+            APK_SOURCE="${APK_FILES[$i]}"
+            APK_BASENAME=$(basename "$APK_SOURCE" .apk)
+            
+            # Copy with timestamp
+            cp "$APK_SOURCE" "$CM_BUILD_DIR/artifacts/arbitrageswap-ai-$APK_BASENAME-$TIMESTAMP.apk"
+            
+            # Copy with simple name for easy access
+            cp "$APK_SOURCE" "$CM_BUILD_DIR/arbitrageswap-ai-$APK_BASENAME.apk"
+            
+            # Copy main APK to root for artifacts pattern matching
+            if [[ "$APK_BASENAME" == *"debug"* ]] || [ $i -eq 0 ]; then
+              cp "$APK_SOURCE" "$CM_BUILD_DIR/arbitrageswap-ai-debug-latest.apk"
+            fi
+          done
           
-          # Copy with simple name for easy access
-          cp "$APK_SOURCE" "$CM_BUILD_DIR/arbitrageswap-ai-debug.apk"
-          
-          # Copy to root for artifacts pattern matching
-          cp "$APK_SOURCE" "$CM_BUILD_DIR/arbitrageswap-ai-debug-latest.apk"
+          cd ..
           
           echo "Artifacts prepared:"
-          ls -la $CM_BUILD_DIR/*.apk || echo "No APK files in build dir"
-          ls -la $CM_BUILD_DIR/artifacts/ || echo "No artifacts directory"
+          ls -la $CM_BUILD_DIR/*.apk 2>/dev/null || echo "No APK files in build dir"
+          ls -la $CM_BUILD_DIR/artifacts/ 2>/dev/null || echo "No artifacts directory"
           
           # Verify file sizes
           for apk in $CM_BUILD_DIR/*.apk $CM_BUILD_DIR/artifacts/*.apk; do
             if [ -f "$apk" ]; then
-              SIZE=$(stat -f%z "$apk" 2>/dev/null || stat -c%s "$apk")
+              SIZE=$(stat -f%z "$apk" 2>/dev/null || stat -c%s "$apk" 2>/dev/null || echo "unknown")
               echo "$(basename "$apk"): $SIZE bytes"
             fi
           done
