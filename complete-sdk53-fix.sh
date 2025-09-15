@@ -2,12 +2,13 @@
 
 set -e  # Exit on any error
 
-echo "🔧 Starting complete SDK 53 Metro fix..."
+echo "🔥 COMPLETE SDK 53 FIX - Fixing ALL Metro/TerminalReporter issues"
+echo "=================================================="
 echo ""
 
 # Step 1: Fix package.json
-echo "📝 Step 1: Fixing package.json..."
-node fix-package-json.js
+echo "📝 Step 1: Fixing package.json for SDK 53..."
+node fix-sdk53-package.js
 
 # Step 2: Clean install
 echo ""
