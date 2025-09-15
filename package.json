@@ -14,6 +14,7 @@
   "dependencies": {
     "@expo/cli": "^54.0.5",
     "@expo/config-plugins": "^54.0.1",
+    "@expo/metro-config": "^54.0.3",
     "@expo/prebuild-config": "^54.0.3",
     "@expo/vector-icons": "^14.1.0",
     "@nkzw/create-context-hook": "^1.1.0",
@@ -22,6 +23,7 @@
     "@stardazed/streams-text-encoding": "^1.0.2",
     "@tanstack/react-query": "^5.83.0",
     "@ungap/structured-clone": "^1.3.0",
+    "babel-preset-expo": "^54.0.1",
     "expo": "^53.0.4",
     "expo-blur": "~14.1.4",
     "expo-constants": "~17.1.4",
