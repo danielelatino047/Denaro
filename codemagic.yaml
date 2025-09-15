@@ -28,6 +28,7 @@ workflows:
           curl -fsSL https://bun.sh/install | bash
           source ~/.bashrc
           export PATH="$HOME/.bun/bin:$PATH"
+          echo "Bun installed at: $(which bun)"
       - name: Install dependencies
         script: |
           export PATH="$HOME/.bun/bin:$PATH"
@@ -35,13 +36,22 @@ workflows:
       - name: Install Expo CLI globally with npm
         script: |
           npm install -g @expo/cli@latest eas-cli@latest
-          which expo
-          which eas
+          export PATH="/usr/local/bin:$PATH"
+          echo "Expo CLI installed at: $(which expo)"
+          echo "EAS CLI installed at: $(which eas)"
+          expo --version
+          eas --version
       - name: Expo Login
         script: |
+          export PATH="/usr/local/bin:$PATH"
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "Error: EXPO_TOKEN environment variable is not set"
+            exit 1
+          fi
           expo login --non-interactive
       - name: Build Android APK with EAS
         script: |
+          export PATH="/usr/local/bin:$PATH"
           eas build --platform android --profile preview --non-interactive --wait
     artifacts:
       - "*.apk"
