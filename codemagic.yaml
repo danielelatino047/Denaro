@@ -148,7 +148,7 @@ workflows:
           echo "=== Running Dependency Conflict Fix ==="
           
           # Run the dependency fix script
-          node dependency-fix.js
+          node dependency-resolution-fix.js
           
           # Verify android directory was created
           if [ ! -d "android" ]; then
