@@ -143,15 +143,12 @@ workflows:
           echo "Package.json main entry:"
           grep '"main"' package.json || echo "No main entry found"
           
-      - name: Generate Android Project (Ultimate Prebuild)
+      - name: Generate Android Project (Dependency Fix)
         script: |
-          echo "=== Running Ultimate Prebuild Fix ==="
+          echo "=== Running Dependency Conflict Fix ==="
           
-          # Make the ultimate prebuild script executable
-          chmod +x ultimate-prebuild.js
-          
-          # Run the ultimate prebuild fix
-          node ultimate-prebuild.js
+          # Run the dependency fix script
+          node dependency-fix.js
           
           # Verify android directory was created
           if [ ! -d "android" ]; then
