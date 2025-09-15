@@ -36,14 +36,19 @@ workflows:
       - name: Install Expo CLI globally with npm
         script: |
           npm install -g @expo/cli@latest eas-cli@latest
-          export PATH="/usr/local/bin:$PATH"
+          # Add npm global bin to PATH permanently
+          echo 'export PATH="$(npm config get prefix)/bin:$PATH"' >> ~/.bashrc
+          source ~/.bashrc
+          export PATH="$(npm config get prefix)/bin:$PATH"
+          echo "NPM global prefix: $(npm config get prefix)"
+          echo "Current PATH: $PATH"
           echo "Expo CLI installed at: $(which expo)"
           echo "EAS CLI installed at: $(which eas)"
           expo --version
           eas --version
       - name: Expo Login
         script: |
-          export PATH="/usr/local/bin:$PATH"
+          export PATH="$(npm config get prefix)/bin:$PATH"
           if [ -z "$EXPO_TOKEN" ]; then
             echo "Error: EXPO_TOKEN environment variable is not set"
             exit 1
@@ -51,7 +56,7 @@ workflows:
           expo login --non-interactive
       - name: Build Android APK with EAS
         script: |
-          export PATH="/usr/local/bin:$PATH"
+          export PATH="$(npm config get prefix)/bin:$PATH"
           eas build --platform android --profile preview --non-interactive --wait
     artifacts:
       - "*.apk"
