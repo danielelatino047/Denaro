@@ -7,7 +7,6 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { MaterialIcons } from "@expo/vector-icons";
 
 export default function ArbitrageScreen() {
   const [isLoading] = useState(false);
@@ -40,8 +39,7 @@ export default function ArbitrageScreen() {
           <>
             <View style={styles.scannerCard}>
               <View style={styles.scannerHeader}>
-                <MaterialIcons name="radar" color="#00D4AA" size={24} />
-                <Text style={styles.scannerTitle}>Opportunity Scanner</Text>
+                <Text style={styles.scannerTitle}>📡 Opportunity Scanner</Text>
               </View>
               <Text style={styles.scannerStatus}>Scanner ready - {isLiveMode ? 'Live' : 'Demo'} mode</Text>
               <Text style={styles.scannerCount}>Found {opportunities.length} opportunities</Text>
@@ -54,13 +52,11 @@ export default function ArbitrageScreen() {
 
             <View style={styles.opportunitiesSection}>
               <View style={styles.sectionHeader}>
-                <MaterialIcons name="trending-up" color="#00D4AA" size={20} />
-                <Text style={styles.sectionTitle}>Live Opportunities</Text>
-                <Text style={styles.opportunityCount}>({opportunities.length})</Text>
+                <Text style={styles.sectionTitle}>📈 Live Opportunities ({opportunities.length})</Text>
               </View>
 
               <View style={styles.emptyState}>
-                <MaterialIcons name="search-off" color="#6B7280" size={48} />
+                <Text style={styles.emptyIcon}>🔍</Text>
                 <Text style={styles.emptyTitle}>No Opportunities Found</Text>
                 <Text style={styles.emptyDescription}>
                   Scanner is ready. Opportunities will appear here when price differences are detected.
@@ -71,10 +67,7 @@ export default function ArbitrageScreen() {
         )}
 
         <View style={styles.infoCard}>
-          <View style={styles.infoHeader}>
-            <MaterialIcons name="info" color="#00D4AA" size={20} />
-            <Text style={styles.infoTitle}>📊 Real-Time Arbitrage</Text>
-          </View>
+          <Text style={styles.infoTitle}>📊 Real-Time Arbitrage</Text>
           <Text style={styles.infoText}>
             Scanning Binance, KuCoin, and Bybit for profitable price differences.
             All opportunities show net profit after trading fees.
@@ -241,5 +234,9 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     color: '#00D4AA',
+  },
+  emptyIcon: {
+    fontSize: 48,
+    marginBottom: 16,
   },
 });

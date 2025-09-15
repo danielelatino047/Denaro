@@ -1,7 +1,6 @@
 import React, { Component, ReactNode } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { MaterialIcons } from '@expo/vector-icons';
 
 interface Props {
   children: ReactNode;
@@ -69,14 +68,6 @@ class ErrorBoundary extends Component<Props, State> {
     
     const errorText = JSON.stringify(errorDetails, null, 2);
     
-    // In a real app, you would copy to clipboard here
-    // For now, we'll show an alert with the error
-    Alert.alert(
-      'Error Details',
-      'Error details logged to console. Check developer tools for full information.',
-      [{ text: 'OK' }]
-    );
-    
     console.log('=== COPYABLE ERROR DETAILS ===');
     console.log(errorText);
     console.log('==============================');
@@ -90,56 +81,23 @@ class ErrorBoundary extends Component<Props, State> {
 
       return (
         <SafeAreaView style={styles.container}>
-          <ScrollView contentContainerStyle={styles.scrollContent}>
-            <View style={styles.content}>
-              <View style={styles.iconContainer}>
-                <MaterialIcons name="error" size={48} color="#EF4444" />
-              </View>
-              
-              <Text style={styles.title}>App Error Detected</Text>
-              
-              <Text style={styles.message}>
-                The app encountered an unexpected error. This information has been logged for debugging.
+          <View style={styles.content}>
+            <Text style={styles.title}>App Error</Text>
+            
+            <Text style={styles.message}>
+              The app encountered an error. Please try restarting.
+            </Text>
+            
+            {__DEV__ && this.state.error && (
+              <Text style={styles.errorDetails}>
+                {this.state.error.name}: {this.state.error.message}
               </Text>
-              
-              {this.state.timestamp && (
-                <Text style={styles.timestamp}>
-                  Error occurred at: {new Date(this.state.timestamp).toLocaleString()}
-                </Text>
-              )}
-              
-              {__DEV__ && this.state.error && (
-                <View style={styles.errorSection}>
-                  <Text style={styles.errorTitle}>Error Details (Development Mode):</Text>
-                  <Text style={styles.errorDetails}>
-                    {this.state.error.name}: {this.state.error.message}
-                  </Text>
-                  
-                  {this.state.error.stack && (
-                    <ScrollView style={styles.stackContainer} horizontal>
-                      <Text style={styles.stackTrace}>
-                        {this.state.error.stack}
-                      </Text>
-                    </ScrollView>
-                  )}
-                </View>
-              )}
-              
-              <View style={styles.buttonContainer}>
-                <TouchableOpacity style={styles.primaryButton} onPress={this.handleReset}>
-                  <MaterialIcons name="refresh" size={16} color="#FFFFFF" />
-                  <Text style={styles.primaryButtonText}>Try Again</Text>
-                </TouchableOpacity>
-                
-                {__DEV__ && (
-                  <TouchableOpacity style={styles.secondaryButton} onPress={this.handleCopyError}>
-                    <MaterialIcons name="content-copy" size={16} color="#9CA3AF" />
-                    <Text style={styles.secondaryButtonText}>Copy Error Details</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-          </ScrollView>
+            )}
+            
+            <TouchableOpacity style={styles.primaryButton} onPress={this.handleReset}>
+              <Text style={styles.primaryButtonText}>Try Again</Text>
+            </TouchableOpacity>
+          </View>
         </SafeAreaView>
       );
     }
