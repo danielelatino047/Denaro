@@ -9,6 +9,7 @@ import { usePortfolioStore } from "../stores/portfolio-store";
 import { useWalletStore } from "../stores/wallet-store";
 import { useSettingsStore } from "../stores/settings-store";
 import ErrorBoundary from "../components/ErrorBoundary";
+import "../components/GlobalErrorHandler";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -52,11 +53,11 @@ function RootLayoutNav() {
 
   const initializeApp = useCallback(async () => {
     try {
-      console.log('Starting app initialization...');
+      console.log('🚀 Starting app initialization...');
       
       // Load settings first
       await loadSettings();
-      console.log('Settings loaded');
+      console.log('✅ Settings loaded');
       
       // Initialize stores in parallel with error handling
       const initPromises = [];
@@ -64,7 +65,7 @@ function RootLayoutNav() {
       if (!portfolioInitialized) {
         initPromises.push(
           initializePortfolio().catch(error => {
-            console.error('Portfolio initialization failed:', error);
+            console.error('❌ Portfolio initialization failed:', error);
             return null;
           })
         );
@@ -73,14 +74,14 @@ function RootLayoutNav() {
       if (!walletInitialized) {
         initPromises.push(
           initializeWallet().catch(error => {
-            console.error('Wallet initialization failed:', error);
+            console.error('❌ Wallet initialization failed:', error);
             return null;
           })
         );
       }
       
       await Promise.allSettled(initPromises);
-      console.log('All stores initialized');
+      console.log('✅ All stores initialized');
       
       // Small delay to ensure everything is ready
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -89,10 +90,10 @@ function RootLayoutNav() {
       
       // Hide splash screen after initialization
       await SplashScreen.hideAsync();
-      console.log('App ready, splash screen hidden');
+      console.log('✅ App ready, splash screen hidden');
       
     } catch (error) {
-      console.error('App initialization error:', error);
+      console.error('❌ App initialization error:', error);
       // Still mark as ready to prevent infinite loading
       setIsAppReady(true);
       await SplashScreen.hideAsync();

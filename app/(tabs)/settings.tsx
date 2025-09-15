@@ -15,6 +15,7 @@ import { MaterialIcons, Ionicons } from "@expo/vector-icons";
 import { useSettingsStore } from "@/stores/settings-store";
 import { usePortfolioStore } from "@/stores/portfolio-store";
 import { useWalletStore } from "@/stores/wallet-store";
+import ErrorDebugModal from "@/components/ErrorDebugModal";
 
 export default function SettingsScreen() {
   const { settings, updateSettings, loadSettings } = useSettingsStore();
@@ -23,6 +24,7 @@ export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const [showApiModal, setShowApiModal] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
+  const [showErrorDebug, setShowErrorDebug] = useState(false);
   const [customBalance, setCustomBalance] = useState("10000");
   
   React.useEffect(() => {
@@ -248,6 +250,29 @@ export default function SettingsScreen() {
             <Text style={styles.settingButtonText}>Export Trading History</Text>
           </TouchableOpacity>
         </View>
+        
+        {__DEV__ && (
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <MaterialIcons name="bug-report" color="#EF4444" size={20} />
+              <Text style={styles.sectionTitle}>Developer Tools</Text>
+            </View>
+
+            <TouchableOpacity 
+              style={[styles.settingButton, styles.debugButton]}
+              onPress={() => setShowErrorDebug(true)}
+            >
+              <View style={styles.buttonContent}>
+                <MaterialIcons name="bug-report" color="#EF4444" size={20} />
+                <Text style={[styles.settingButtonText, styles.debugButtonText]}>Error Debug Console</Text>
+              </View>
+            </TouchableOpacity>
+            
+            <Text style={styles.debugNote}>
+              View JavaScript errors and debugging information (Development Mode only)
+            </Text>
+          </View>
+        )}
       </ScrollView>
 
       <Modal
@@ -474,6 +499,11 @@ export default function SettingsScreen() {
           </View>
         </View>
       </Modal>
+      
+      <ErrorDebugModal 
+        visible={showErrorDebug}
+        onClose={() => setShowErrorDebug(false)}
+      />
     </View>
   );
 }
@@ -808,5 +838,19 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 14,
     fontWeight: "600" as const,
+  },
+  debugButton: {
+    backgroundColor: "#450A0A",
+    borderWidth: 1,
+    borderColor: "#EF4444",
+  },
+  debugButtonText: {
+    color: "#EF4444",
+  },
+  debugNote: {
+    fontSize: 12,
+    color: "#6B7280",
+    fontStyle: "italic",
+    marginTop: 8,
   },
 });

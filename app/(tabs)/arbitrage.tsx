@@ -15,6 +15,7 @@ import { ArbitrageCard } from "@/components/ArbitrageCard";
 import { ProfitSummary } from "@/components/ProfitSummary";
 import { OpportunityScanner } from "@/components/OpportunityScanner";
 import { useSettingsStore } from "@/stores/settings-store";
+import ComponentErrorBoundary from "@/components/ComponentErrorBoundary";
 
 export default function ArbitrageScreen() {
   const { 
@@ -108,13 +109,17 @@ export default function ArbitrageScreen() {
         </View>
       </View>
 
-      <OpportunityScanner 
-        isScanning={isLoading || isLiveMode}
-        opportunityCount={opportunities.length}
-        isLiveMode={settings.isLiveMode}
-      />
+      <ComponentErrorBoundary componentName="OpportunityScanner">
+        <OpportunityScanner 
+          isScanning={isLoading || isLiveMode}
+          opportunityCount={opportunities.length}
+          isLiveMode={settings.isLiveMode}
+        />
+      </ComponentErrorBoundary>
       
-      <ProfitSummary totalProfit={totalProfit} />
+      <ComponentErrorBoundary componentName="ProfitSummary">
+        <ProfitSummary totalProfit={totalProfit} />
+      </ComponentErrorBoundary>
 
       <ScrollView
         style={styles.scrollView}
@@ -158,10 +163,14 @@ export default function ArbitrageScreen() {
               </Text>
             </View>
             {opportunities.map((opportunity) => (
-              <ArbitrageCard
+              <ComponentErrorBoundary 
                 key={`${opportunity.tokenPair}-${opportunity.buyExchange}-${opportunity.sellExchange}`}
-                opportunity={opportunity}
-              />
+                componentName="ArbitrageCard"
+              >
+                <ArbitrageCard
+                  opportunity={opportunity}
+                />
+              </ComponentErrorBoundary>
             ))}
           </>
         )}
