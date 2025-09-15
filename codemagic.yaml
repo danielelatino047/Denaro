@@ -1,8 +1,8 @@
 workflows:
-  # Debug APK Build - Robuste Konfiguration für Expo SDK 53
+  # Debug APK Build - Vollständig überarbeitete Konfiguration
   debug-apk:
-    name: Debug APK Build
-    max_build_duration: 90
+    name: Debug APK Build (Expo SDK 53)
+    max_build_duration: 120
     instance_type: mac_mini_m2
     triggering:
       events:
@@ -15,8 +15,8 @@ workflows:
     environment:
       vars:
         PACKAGE_NAME: "com.arbitrageswap.ai"
-        EXPO_CLI_VERSION: "6.3.10"
         NODE_ENV: "development"
+        EXPO_PUBLIC_BUNDLE_IDENTIFIER: "com.arbitrageswap.ai"
       node: 20.18.0
       java: 17
       xcode: latest
@@ -27,124 +27,256 @@ workflows:
         - node_modules
         - $HOME/.npm
         - $HOME/.expo
+        - $HOME/.yarn
     scripts:
-      - name: Verify Environment
+      - name: Environment Setup and Verification
         script: |
-          echo "=== Environment Check ==="
+          echo "=== Environment Verification ==="
           node --version
           npm --version
           java -version
           echo "ANDROID_SDK_ROOT: $ANDROID_SDK_ROOT"
+          echo "ANDROID_NDK_ROOT: $ANDROID_NDK_ROOT"
           echo "PATH: $PATH"
           
-      - name: Clean and Install Node Dependencies
-        script: |
-          echo "=== Installing Node Dependencies ==="
-          rm -rf node_modules package-lock.json
-          npm cache clean --force
-          npm install --legacy-peer-deps --verbose
-          
-      - name: Install Expo CLI with Verification
-        script: |
-          echo "=== Installing Expo CLI ==="
-          npm uninstall -g @expo/cli expo-cli || true
-          npm install -g @expo/cli@$EXPO_CLI_VERSION --force
-          
-          # Verify installation
-          which expo || echo "Expo not in PATH"
-          ls -la $(npm root -g)/@expo/cli/bin/ || echo "Expo CLI bin not found"
-          
-          # Add to PATH if needed
-          export PATH="$(npm root -g)/@expo/cli/bin:$PATH"
-          
-          # Test expo command
-          expo --version || {
-            echo "Expo command failed, trying alternative installation"
-            npm install -g expo@latest --force
-            expo --version
-          }
-          
-      - name: Clear All Caches
-        script: |
-          echo "=== Clearing Caches ==="
-          rm -rf .expo
-          rm -rf android
-          rm -rf ios
-          expo doctor || true
-          
-      - name: Generate Android Project
-        script: |
-          echo "=== Generating Android Project ==="
-          expo prebuild --platform android --clean --no-install --verbose
-          
-          # Verify android directory was created
-          if [ ! -d "android" ]; then
-            echo "ERROR: Android directory not created!"
+          # Verify Android SDK
+          if [ -z "$ANDROID_SDK_ROOT" ]; then
+            echo "ERROR: ANDROID_SDK_ROOT not set!"
             exit 1
           fi
           
-          echo "Android project structure:"
+          if [ ! -d "$ANDROID_SDK_ROOT" ]; then
+            echo "ERROR: Android SDK directory not found at $ANDROID_SDK_ROOT"
+            exit 1
+          fi
+          
+          echo "Android SDK found at: $ANDROID_SDK_ROOT"
+          ls -la "$ANDROID_SDK_ROOT" || true
+          
+      - name: Clean Installation
+        script: |
+          echo "=== Clean Installation ==="
+          # Remove all caches and build artifacts
+          rm -rf node_modules
+          rm -rf package-lock.json
+          rm -rf yarn.lock
+          rm -rf .expo
+          rm -rf android
+          rm -rf ios
+          
+          # Clear npm cache
+          npm cache clean --force
+          
+          echo "Cleanup completed"
+          
+      - name: Install Dependencies
+        script: |
+          echo "=== Installing Dependencies ==="
+          
+          # Install with exact versions to avoid conflicts
+          npm install --legacy-peer-deps --no-optional --verbose
+          
+          # Verify critical packages
+          echo "Verifying package installation:"
+          npm list expo || echo "Expo package check failed"
+          npm list expo-router || echo "Expo Router package check failed"
+          
+          echo "Dependencies installed successfully"
+          
+      - name: Install and Configure Expo CLI
+        script: |
+          echo "=== Installing Expo CLI ==="
+          
+          # Remove any existing Expo CLI installations
+          npm uninstall -g @expo/cli expo-cli || true
+          
+          # Install latest stable Expo CLI
+          npm install -g @expo/cli@latest --force
+          
+          # Verify installation
+          which expo
+          expo --version
+          
+          # Test basic expo commands
+          expo doctor || echo "Expo doctor completed with warnings"
+          
+      - name: Configure Expo Project
+        script: |
+          echo "=== Configuring Expo Project ==="
+          
+          # Verify app.json exists and is valid
+          if [ ! -f "app.json" ]; then
+            echo "ERROR: app.json not found!"
+            exit 1
+          fi
+          
+          echo "Current app.json content:"
+          cat app.json
+          
+          # Verify package.json
+          if [ ! -f "package.json" ]; then
+            echo "ERROR: package.json not found!"
+            exit 1
+          fi
+          
+          echo "Package.json main entry:"
+          grep '"main"' package.json || echo "No main entry found"
+          
+      - name: Generate Android Project (Prebuild)
+        script: |
+          echo "=== Generating Android Project ==="
+          
+          # Set environment variables for prebuild
+          export EXPO_NO_TELEMETRY=1
+          export EXPO_NO_CACHE=1
+          
+          # Run prebuild with detailed logging
+          echo "Running expo prebuild..."
+          expo prebuild --platform android --clean --no-install --verbose || {
+            echo "Prebuild failed, trying alternative approach..."
+            
+            # Try with npm install
+            expo prebuild --platform android --clean --verbose || {
+              echo "Second prebuild attempt failed, checking for issues..."
+              
+              # Check if we have required dependencies
+              npm list @expo/config-plugins || echo "Missing @expo/config-plugins"
+              npm list @expo/prebuild-config || echo "Missing @expo/prebuild-config"
+              
+              # Install missing dependencies if needed
+              npm install @expo/config-plugins @expo/prebuild-config --save-dev
+              
+              # Try one more time
+              expo prebuild --platform android --clean --verbose
+            }
+          }
+          
+          # Verify android directory was created
+          if [ ! -d "android" ]; then
+            echo "ERROR: Android directory not created after prebuild!"
+            echo "Current directory contents:"
+            ls -la
+            exit 1
+          fi
+          
+          echo "Android project generated successfully!"
+          echo "Android directory structure:"
           ls -la android/
           
-      - name: Setup Android Build Environment
-        script: |
-          echo "=== Setting up Android Build Environment ==="
-          
-          # Create local.properties
-          echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
-          echo "ndk.dir=$ANDROID_NDK_ROOT" >> android/local.properties
-          
-          # Verify gradle wrapper
+          # Verify essential Android files
           if [ ! -f "android/gradlew" ]; then
             echo "ERROR: Gradle wrapper not found!"
             exit 1
           fi
           
+          if [ ! -f "android/app/build.gradle" ]; then
+            echo "ERROR: App build.gradle not found!"
+            exit 1
+          fi
+          
+      - name: Configure Android Build
+        script: |
+          echo "=== Configuring Android Build ==="
+          
+          # Create local.properties with correct SDK paths
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
+          if [ -n "$ANDROID_NDK_ROOT" ]; then
+            echo "ndk.dir=$ANDROID_NDK_ROOT" >> android/local.properties
+          fi
+          
+          echo "Created local.properties:"
+          cat android/local.properties
+          
+          # Make gradlew executable
           chmod +x android/gradlew
           
-          # Test gradle
+          # Test gradle wrapper
           cd android
-          ./gradlew --version
+          echo "Testing Gradle wrapper..."
+          ./gradlew --version || {
+            echo "Gradle wrapper test failed!"
+            exit 1
+          }
+          
+          echo "Gradle configuration successful"
           
       - name: Build Debug APK
         script: |
           echo "=== Building Debug APK ==="
           cd android
           
-          # Clean previous builds
+          # Clean any previous builds
+          echo "Cleaning previous builds..."
           ./gradlew clean --stacktrace --info
           
-          # Build debug APK
-          ./gradlew assembleDebug --stacktrace --info --no-daemon --max-workers=2
+          # Build debug APK with detailed logging
+          echo "Building debug APK..."
+          ./gradlew assembleDebug --stacktrace --info --no-daemon --max-workers=2 || {
+            echo "Build failed! Checking for common issues..."
+            
+            # Check if we have build tools
+            ls -la "$ANDROID_SDK_ROOT/build-tools/" || echo "Build tools not found"
+            
+            # Check gradle daemon status
+            ./gradlew --status || true
+            
+            # Try building again with different settings
+            echo "Retrying build with different settings..."
+            ./gradlew assembleDebug --stacktrace --debug --no-daemon --offline || {
+              echo "Second build attempt failed!"
+              exit 1
+            }
+          }
           
           # Verify APK was created
+          echo "Checking for generated APK..."
+          find app/build/outputs -name "*.apk" -type f
+          
           if [ ! -f "app/build/outputs/apk/debug/app-debug.apk" ]; then
-            echo "ERROR: Debug APK not found!"
-            echo "Checking build outputs:"
-            find app/build/outputs -name "*.apk" -type f || echo "No APK files found"
+            echo "ERROR: Expected debug APK not found!"
+            echo "Build outputs directory structure:"
+            find app/build/outputs -type f || echo "No build outputs found"
             exit 1
           fi
           
-          echo "APK successfully created:"
+          echo "APK build successful!"
           ls -la app/build/outputs/apk/debug/
           
-      - name: Copy APK to Artifacts
+          # Get APK info
+          APK_SIZE=$(stat -f%z app/build/outputs/apk/debug/app-debug.apk 2>/dev/null || stat -c%s app/build/outputs/apk/debug/app-debug.apk)
+          echo "APK size: $APK_SIZE bytes"
+          
+      - name: Prepare Artifacts
         script: |
-          echo "=== Copying APK to Artifacts ==="
+          echo "=== Preparing Artifacts ==="
           
           # Create artifacts directory
           mkdir -p $CM_BUILD_DIR/artifacts
           
-          # Copy APK with timestamp
+          # Copy APK with descriptive names
           TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
-          cp android/app/build/outputs/apk/debug/app-debug.apk $CM_BUILD_DIR/artifacts/arbitrageswap-ai-debug-$TIMESTAMP.apk
+          APK_SOURCE="android/app/build/outputs/apk/debug/app-debug.apk"
           
-          # Also copy with simple name
-          cp android/app/build/outputs/apk/debug/app-debug.apk $CM_BUILD_DIR/arbitrageswap-ai-debug.apk
+          # Copy with timestamp
+          cp "$APK_SOURCE" "$CM_BUILD_DIR/artifacts/arbitrageswap-ai-debug-$TIMESTAMP.apk"
           
-          echo "Artifacts created:"
-          ls -la $CM_BUILD_DIR/
-          ls -la $CM_BUILD_DIR/artifacts/ || true
+          # Copy with simple name for easy access
+          cp "$APK_SOURCE" "$CM_BUILD_DIR/arbitrageswap-ai-debug.apk"
+          
+          # Copy to root for artifacts pattern matching
+          cp "$APK_SOURCE" "$CM_BUILD_DIR/arbitrageswap-ai-debug-latest.apk"
+          
+          echo "Artifacts prepared:"
+          ls -la $CM_BUILD_DIR/*.apk || echo "No APK files in build dir"
+          ls -la $CM_BUILD_DIR/artifacts/ || echo "No artifacts directory"
+          
+          # Verify file sizes
+          for apk in $CM_BUILD_DIR/*.apk $CM_BUILD_DIR/artifacts/*.apk; do
+            if [ -f "$apk" ]; then
+              SIZE=$(stat -f%z "$apk" 2>/dev/null || stat -c%s "$apk")
+              echo "$(basename "$apk"): $SIZE bytes"
+            fi
+          done
           
     artifacts:
       - "*.apk"
@@ -160,42 +292,43 @@ workflows:
           success: true
           failure: true
 
-  # Fallback: Pure Gradle Build (ohne Expo)
-  gradle-debug-apk:
-    name: Gradle Debug APK (Fallback)
-    max_build_duration: 60
+  # EAS Build Alternative (falls Prebuild nicht funktioniert)
+  eas-debug-apk:
+    name: EAS Debug APK Build
+    max_build_duration: 90
     instance_type: mac_mini_m2
     triggering:
       events:
         - push
       branch_patterns:
-        - pattern: 'fallback'
+        - pattern: 'eas-build'
           include: true
     environment:
       vars:
+        EXPO_TOKEN: $EXPO_TOKEN
         PACKAGE_NAME: "com.arbitrageswap.ai"
       node: 20.18.0
       java: 17
     scripts:
-      - name: Setup React Native Project
+      - name: Install Dependencies
         script: |
-          echo "=== Setting up React Native Project ==="
+          echo "=== Installing Dependencies ==="
           npm install --legacy-peer-deps
+          npm install -g @expo/cli eas-cli
           
-          # Create basic Android project structure if not exists
-          if [ ! -d "android" ]; then
-            npx react-native init TempProject --template react-native-template-typescript
-            cp -r TempProject/android .
-            rm -rf TempProject
+      - name: EAS Build
+        script: |
+          echo "=== EAS Build ==="
+          
+          # Check if EXPO_TOKEN is set
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "WARNING: EXPO_TOKEN not set, trying without authentication"
+          else
+            echo "EXPO_TOKEN is configured"
           fi
           
-      - name: Build with Gradle
-        script: |
-          echo "=== Building with Gradle ==="
-          cd android
-          echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
-          chmod +x ./gradlew
-          ./gradlew assembleDebug --stacktrace --info
+          # Build with EAS
+          eas build --platform android --profile development --local --output $CM_BUILD_DIR/arbitrageswap-ai-eas-debug.apk
           
     artifacts:
-      - android/app/build/outputs/**/*.apk
+      - "*.apk"
