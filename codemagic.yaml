@@ -1,4 +1,22 @@
 workflows:
+  # 1. Debug-Build für schnelles Testen
+  debug-apk:
+    name: Debug APK Build
+    max_build_duration: 60
+    instance_type: mac_mini_m1
+    environment:
+      node: 20.11.0
+    scripts:
+      - name: Install dependencies
+        script: npm install
+      - name: Build Debug APK
+        script: |
+          cd android
+          ./gradlew assembleDebug
+    artifacts:
+      - android/app/build/outputs/**/*.apk
+
+  # 2. Release-Build mit Expo/EAS
   expo-android-apk:
     name: Expo Android APK Build
     max_build_duration: 60
@@ -12,72 +30,22 @@ workflows:
         - node_modules
         - ~/.bun
         - ~/.expo
-    triggering:
-      events:
-        - push
-      branch_patterns:
-        - pattern: main
-          include: true
-          source: true
-        - pattern: master
-          include: true
-          source: true
     scripts:
-      - name: Setup Environment and Install Tools
+      - name: Setup Environment
         script: |
-          # Install Bun
-          curl -fsSL https://bun.sh/install | bash
-          export PATH="$HOME/.bun/bin:$PATH"
-          
-          # Install Expo CLI and EAS CLI globally with npm
-          npm install -g @expo/cli@latest eas-cli@latest
-          
-          # Set up PATH for all subsequent commands
-          export NPM_GLOBAL_PREFIX=$(npm config get prefix)
-          export PATH="$NPM_GLOBAL_PREFIX/bin:$HOME/.bun/bin:$PATH"
-          
-          # Persist PATH in environment
-          echo "export PATH=\"$NPM_GLOBAL_PREFIX/bin:$HOME/.bun/bin:\$PATH\"" >> $CM_BUILD_DIR/.env
-          
-          # Verify installations
-          echo "Bun version: $(bun --version)"
-          echo "Node version: $(node --version)"
-          echo "NPM version: $(npm --version)"
-          echo "Expo CLI version: $(expo --version)"
-          echo "EAS CLI version: $(eas --version)"
-          echo "Current PATH: $PATH"
+          npm install -g @expo/cli eas-cli
       - name: Install Dependencies
-        script: |
-          source $CM_BUILD_DIR/.env
-          bun install --frozen-lockfile
+        script: npm install
       - name: Authenticate with Expo
         script: |
-          source $CM_BUILD_DIR/.env
           if [ -z "$EXPO_TOKEN" ]; then
-            echo "Error: EXPO_TOKEN environment variable is not set"
-            echo "Please set EXPO_TOKEN in Codemagic environment variables"
-            exit 1
+            echo "EXPO_TOKEN not set"; exit 1
           fi
-          
-          echo "Authenticating with Expo using token..."
-          expo whoami || expo login --non-interactive
-          echo "Expo authentication successful"
-      - name: Build Android APK
+          eas whoami || eas login --token $EXPO_TOKEN
+      - name: Build Release APK
         script: |
-          source $CM_BUILD_DIR/.env
-          echo "Starting EAS build for Android APK..."
-          eas build --platform android --profile preview --non-interactive --wait
-          
-          # Find and copy the APK to the build directory
-          echo "Looking for generated APK files..."
-          find . -name "*.apk" -type f -exec cp {} $CM_BUILD_DIR/ \;
-          ls -la $CM_BUILD_DIR/*.apk || echo "No APK files found in build directory"
+          eas build --platform android --profile production --non-interactive --wait
+          # APK in build folder kopieren (falls vorhanden)
+          find . -name "*.apk" -exec cp {} $CM_BUILD_DIR/ \;
     artifacts:
       - "*.apk"
-    publishing:
-      email:
-        recipients:
-          - daniele.latino047@gmail.com
-        notify:
-          success: true
-          failure: true
