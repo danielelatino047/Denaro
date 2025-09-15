@@ -1,5 +1,5 @@
 workflows:
-  # Debug APK Build - Einfach und funktionsfähig
+  # Debug APK Build - Funktionsfähig mit Expo SDK 53
   debug-apk:
     name: Debug APK Build
     max_build_duration: 60
@@ -14,20 +14,29 @@ workflows:
           include: true
     environment:
       vars:
-        PACKAGE_NAME: "com.denaro.app"
-      node: 20.11.0
+        PACKAGE_NAME: "com.arbitrageswap.ai"
+        EXPO_CLI_VERSION: "6.3.10"
+      node: 18.20.4
       java: 17
     cache:
       cache_paths:
         - $HOME/.gradle/caches
         - node_modules
+        - $HOME/.npm
     scripts:
+      - name: Install specific Expo CLI version
+        script: |
+          npm install -g @expo/cli@$EXPO_CLI_VERSION
+          expo --version
       - name: Install dependencies
         script: |
-          npm install --legacy-peer-deps
+          npm ci --legacy-peer-deps
+      - name: Clear Expo cache
+        script: |
+          expo r -c || true
       - name: Generate Android project
         script: |
-          npx expo prebuild --platform android --clean
+          expo prebuild --platform android --clean --no-install
       - name: Set up local.properties
         script: |
           echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
@@ -35,7 +44,8 @@ workflows:
         script: |
           cd android
           chmod +x ./gradlew
-          ./gradlew assembleDebug --stacktrace --info
+          ./gradlew clean
+          ./gradlew assembleDebug --stacktrace --info --no-daemon
       - name: List generated APK files
         script: |
           echo "Suche nach APK-Dateien..."
@@ -44,6 +54,70 @@ workflows:
     artifacts:
       - android/app/build/outputs/**/*.apk
       - android/app/build/outputs/**/mapping.txt
+    publishing:
+      email:
+        recipients:
+          - daniele.latino047@gmail.com
+        notify:
+          success: true
+          failure: true
+
+  # Expo EAS Build - Alternative Methode
+  expo-android-apk:
+    name: Expo Android APK
+    max_build_duration: 60
+    instance_type: mac_mini_m1
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: 'main'
+          include: true
+    environment:
+      vars:
+        EXPO_TOKEN: $EXPO_TOKEN
+        PACKAGE_NAME: "com.arbitrageswap.ai"
+      node: 18.20.4
+    cache:
+      cache_paths:
+        - node_modules
+        - $HOME/.npm
+    scripts:
+      - name: Install EAS CLI
+        script: |
+          npm install -g @expo/cli@6.3.10 eas-cli@latest
+          expo --version
+          eas --version
+      - name: Install dependencies
+        script: |
+          npm ci --legacy-peer-deps
+      - name: EAS Build
+        script: |
+          if [ -z "$EXPO_TOKEN" ]; then
+            echo "EXPO_TOKEN nicht gesetzt - verwende lokalen Build"
+            expo prebuild --platform android --clean --no-install
+            cd android
+            chmod +x ./gradlew
+            ./gradlew assembleRelease --stacktrace --info --no-daemon
+            cp app/build/outputs/apk/release/*.apk $CM_BUILD_DIR/
+          else
+            echo "EXPO_TOKEN gesetzt - verwende EAS Build"
+            eas build --platform android --profile production --non-interactive --wait
+            eas build:list --platform android --limit 1 --json > build_info.json
+            # Download APK if available
+            BUILD_URL=$(cat build_info.json | grep -o '"artifacts":{"buildUrl":"[^"]*"' | cut -d'"' -f4)
+            if [ ! -z "$BUILD_URL" ]; then
+              curl -o $CM_BUILD_DIR/app-release.apk "$BUILD_URL"
+            fi
+          fi
+      - name: List artifacts
+        script: |
+          echo "Artifacts im Build-Verzeichnis:"
+          ls -la $CM_BUILD_DIR/
+          find android/app/build/outputs -name "*.apk" -type f 2>/dev/null | head -10 || echo "Keine lokalen APKs gefunden"
+    artifacts:
+      - "*.apk"
+      - android/app/build/outputs/**/*.apk
     publishing:
       email:
         recipients:
