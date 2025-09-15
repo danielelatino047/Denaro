@@ -2,12 +2,9 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import React, { useEffect, useState, useCallback } from "react";
-import { StyleSheet, View, Text, ActivityIndicator } from "react-native";
+import { StyleSheet, View, Text, ActivityIndicator, Platform } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { usePortfolioStore } from "../stores/portfolio-store";
-import { useWalletStore } from "../stores/wallet-store";
-import { useSettingsStore } from "../stores/settings-store";
 import ErrorBoundary from "../components/ErrorBoundary";
 import "../components/GlobalErrorHandler";
 
@@ -43,45 +40,61 @@ const styles = StyleSheet.create({
     marginTop: 16,
     fontSize: 16,
   },
+  webNotice: {
+    color: '#9CA3AF',
+    marginTop: 8,
+    fontSize: 12,
+    textAlign: 'center',
+  },
+  errorText: {
+    color: '#EF4444',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 8,
+  },
+  errorDetails: {
+    color: '#F87171',
+    fontSize: 14,
+    marginBottom: 16,
+    textAlign: 'center',
+  },
 });
 
 function RootLayoutNav() {
   const [isAppReady, setIsAppReady] = useState(false);
-  const { initializePortfolio, isInitialized: portfolioInitialized } = usePortfolioStore();
-  const { initializeWallet, isInitialized: walletInitialized } = useWalletStore();
-  const { loadSettings } = useSettingsStore();
+  const [initError, setInitError] = useState<string | null>(null);
 
   const initializeApp = useCallback(async () => {
     try {
       console.log('🚀 Starting app initialization...');
       
-      // Load settings first
-      await loadSettings();
-      console.log('✅ Settings loaded');
-      
-      // Initialize stores in parallel with error handling
-      const initPromises = [];
-      
-      if (!portfolioInitialized) {
-        initPromises.push(
-          initializePortfolio().catch(error => {
-            console.error('❌ Portfolio initialization failed:', error);
-            return null;
-          })
-        );
+      // Initialize stores with error handling
+      try {
+        const { useSettingsStore } = await import('../stores/settings-store');
+        const { loadSettings } = useSettingsStore.getState();
+        await loadSettings();
+        console.log('✅ Settings loaded');
+      } catch (error) {
+        console.error('❌ Settings initialization failed:', error);
       }
       
-      if (!walletInitialized) {
-        initPromises.push(
-          initializeWallet().catch(error => {
-            console.error('❌ Wallet initialization failed:', error);
-            return null;
-          })
-        );
+      try {
+        const { usePortfolioStore } = await import('../stores/portfolio-store');
+        const { initializePortfolio } = usePortfolioStore.getState();
+        await initializePortfolio();
+        console.log('✅ Portfolio initialized');
+      } catch (error) {
+        console.error('❌ Portfolio initialization failed:', error);
       }
       
-      await Promise.allSettled(initPromises);
-      console.log('✅ All stores initialized');
+      try {
+        const { useWalletStore } = await import('../stores/wallet-store');
+        const { initializeWallet } = useWalletStore.getState();
+        await initializeWallet();
+        console.log('✅ Wallet initialized');
+      } catch (error) {
+        console.error('❌ Wallet initialization failed:', error);
+      }
       
       // Small delay to ensure everything is ready
       await new Promise(resolve => setTimeout(resolve, 500));
@@ -94,11 +107,12 @@ function RootLayoutNav() {
       
     } catch (error) {
       console.error('❌ App initialization error:', error);
+      setInitError(error instanceof Error ? error.message : 'Unknown error');
       // Still mark as ready to prevent infinite loading
       setIsAppReady(true);
       await SplashScreen.hideAsync();
     }
-  }, [portfolioInitialized, walletInitialized, initializePortfolio, initializeWallet, loadSettings]);
+  }, []);
 
   useEffect(() => {
     initializeApp();
@@ -109,6 +123,19 @@ function RootLayoutNav() {
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#00D4AA" />
         <Text style={styles.loadingText}>Loading ArbitrageSwap AI...</Text>
+        {Platform.OS === 'web' && (
+          <Text style={styles.webNotice}>Running in web preview mode</Text>
+        )}
+      </View>
+    );
+  }
+
+  if (initError) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.errorText}>Initialization Error</Text>
+        <Text style={styles.errorDetails}>{initError}</Text>
+        <Text style={styles.loadingText}>App will continue with limited functionality</Text>
       </View>
     );
   }

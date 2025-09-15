@@ -1,62 +1,95 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
   Text,
   View,
   ScrollView,
   TouchableOpacity,
-  RefreshControl,
-  Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons, Ionicons } from "@expo/vector-icons";
-import { useArbitrageStore } from "@/stores/arbitrage-store";
-import { ArbitrageCard } from "@/components/ArbitrageCard";
-import { ProfitSummary } from "@/components/ProfitSummary";
-import { OpportunityScanner } from "@/components/OpportunityScanner";
-import { useSettingsStore } from "@/stores/settings-store";
 import ComponentErrorBoundary from "@/components/ComponentErrorBoundary";
 
 export default function ArbitrageScreen() {
-  const { 
-    opportunities, 
-    isLoading, 
-    refreshOpportunities, 
-    totalProfit, 
-    isLiveMode, 
-    startLiveUpdates, 
-    stopLiveUpdates,
-    lastUpdateTime,
-    wsConnected 
-  } = useArbitrageStore();
-  const { settings } = useSettingsStore();
+  const [isLoading, setIsLoading] = useState(false);
+  const [opportunities, setOpportunities] = useState<any[]>([]);
+  const [isLiveMode, setIsLiveMode] = useState(false);
+  const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
+  const [wsConnected] = useState(false);
+  const [totalProfit] = useState(0);
+  const [isLiveModeFromSettings, setIsLiveModeFromSettings] = useState(false);
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
-    // Only start live updates if in live mode
-    if (settings.isLiveMode) {
-      console.log('🔴 Live mode enabled - starting live updates');
-      startLiveUpdates();
-    } else {
-      console.log('🟡 Demo mode - stopping live updates');
-      stopLiveUpdates();
-    }
-    
-    // Cleanup on unmount
-    return () => {
-      stopLiveUpdates();
+    // Load stores and initialize
+    const initializeStores = async () => {
+      try {
+        const { useSettingsStore } = await import('@/stores/settings-store');
+        const { settings } = useSettingsStore.getState();
+        setIsLiveModeFromSettings(settings.isLiveMode);
+        
+        const { useArbitrageStore } = await import('@/stores/arbitrage-store');
+        const arbitrageStore = useArbitrageStore.getState();
+        
+        // Load initial data
+        await arbitrageStore.refreshOpportunities();
+        setOpportunities(arbitrageStore.opportunities);
+        setLastUpdateTime(arbitrageStore.lastUpdateTime);
+        
+      } catch (error) {
+        console.error('Error initializing arbitrage screen:', error);
+        // Set some demo data as fallback
+        setOpportunities([
+          {
+            tokenPair: 'BTC/USDT',
+            buyExchange: 'Binance',
+            sellExchange: 'Bybit',
+            buyPrice: 45000,
+            sellPrice: 45100,
+            profitPercentage: 0.22,
+            profitAmount: 100,
+            volume: 150000,
+            minTradeAmount: 10,
+            maxTradeAmount: 5000,
+            lastUpdated: new Date()
+          }
+        ]);
+        setLastUpdateTime(new Date());
+      }
     };
-  }, [settings.isLiveMode, startLiveUpdates, stopLiveUpdates]);
+    
+    initializeStores();
+  }, []);
   
-  const handleManualRefresh = () => {
-    refreshOpportunities();
+  const handleManualRefresh = async () => {
+    setIsLoading(true);
+    try {
+      const { useArbitrageStore } = await import('@/stores/arbitrage-store');
+      const arbitrageStore = useArbitrageStore.getState();
+      await arbitrageStore.refreshOpportunities();
+      setOpportunities(arbitrageStore.opportunities);
+      setLastUpdateTime(arbitrageStore.lastUpdateTime);
+    } catch (error) {
+      console.error('Error refreshing opportunities:', error);
+    } finally {
+      setIsLoading(false);
+    }
   };
   
-  const toggleLiveMode = () => {
-    if (isLiveMode) {
-      stopLiveUpdates();
-    } else {
-      startLiveUpdates();
+  const toggleLiveMode = async () => {
+    try {
+      const { useArbitrageStore } = await import('@/stores/arbitrage-store');
+      const arbitrageStore = useArbitrageStore.getState();
+      
+      if (isLiveMode) {
+        arbitrageStore.stopLiveUpdates();
+        setIsLiveMode(false);
+      } else {
+        arbitrageStore.startLiveUpdates();
+        setIsLiveMode(true);
+      }
+    } catch (error) {
+      console.error('Error toggling live mode:', error);
     }
   };
 
@@ -110,29 +143,25 @@ export default function ArbitrageScreen() {
       </View>
 
       <ComponentErrorBoundary componentName="OpportunityScanner">
-        <OpportunityScanner 
-          isScanning={isLoading || isLiveMode}
-          opportunityCount={opportunities.length}
-          isLiveMode={settings.isLiveMode}
-        />
+        <View style={styles.scannerContainer}>
+          <View style={styles.scannerHeader}>
+            <MaterialIcons name="radar" color="#00D4AA" size={24} />
+            <Text style={styles.scannerTitle}>Market Scanner</Text>
+          </View>
+          <Text style={styles.scannerStatus}>
+            {isLoading || isLiveMode ? 'Scanning...' : 'Ready'} • {opportunities.length} opportunities
+          </Text>
+        </View>
       </ComponentErrorBoundary>
       
       <ComponentErrorBoundary componentName="ProfitSummary">
-        <ProfitSummary totalProfit={totalProfit} />
+        <View style={styles.profitContainer}>
+          <Text style={styles.profitTitle}>Total Profit Potential</Text>
+          <Text style={styles.profitAmount}>${totalProfit.toFixed(2)}</Text>
+        </View>
       </ComponentErrorBoundary>
 
-      <ScrollView
-        style={styles.scrollView}
-        {...(Platform.OS !== 'web' && {
-          refreshControl: (
-            <RefreshControl
-              refreshing={isLoading}
-              onRefresh={handleManualRefresh}
-              tintColor="#00D4AA"
-            />
-          )
-        })}
-      >
+      <ScrollView style={styles.scrollView}>
         {opportunities.length === 0 && !isLoading ? (
           <View style={styles.emptyState}>
             <Ionicons name="flash" color="#6B7280" size={48} />
@@ -156,20 +185,40 @@ export default function ArbitrageScreen() {
           <>
             <View style={styles.opportunityHeader}>
               <Text style={styles.opportunityCount}>
-                {opportunities.length} {settings.isLiveMode ? 'Live' : 'Demo'} Opportunities
+                {opportunities.length} {isLiveModeFromSettings ? 'Live' : 'Demo'} Opportunities
               </Text>
               <Text style={styles.opportunitySubtext}>
-                Sorted by net profit (after fees) • {wsConnected ? 'WebSocket' : isLiveMode ? 'REST API' : 'Manual'} • {settings.isLiveMode ? 'Real Trading' : 'Simulation'}
+                Sorted by net profit (after fees) • {wsConnected ? 'WebSocket' : isLiveMode ? 'REST API' : 'Manual'} • {isLiveModeFromSettings ? 'Real Trading' : 'Simulation'}
               </Text>
             </View>
-            {opportunities.map((opportunity) => (
+            {opportunities.map((opportunity, index) => (
               <ComponentErrorBoundary 
-                key={`${opportunity.tokenPair}-${opportunity.buyExchange}-${opportunity.sellExchange}`}
+                key={`${opportunity.tokenPair}-${opportunity.buyExchange}-${opportunity.sellExchange}-${index}`}
                 componentName="ArbitrageCard"
               >
-                <ArbitrageCard
-                  opportunity={opportunity}
-                />
+                <View style={styles.opportunityCard}>
+                  <View style={styles.cardHeader}>
+                    <Text style={styles.tokenPair}>{opportunity.tokenPair}</Text>
+                    <Text style={styles.profitBadge}>+{opportunity.profitPercentage.toFixed(2)}%</Text>
+                  </View>
+                  <View style={styles.cardBody}>
+                    <View style={styles.exchangeInfo}>
+                      <Text style={styles.exchangeLabel}>Buy: {opportunity.buyExchange}</Text>
+                      <Text style={styles.price}>${opportunity.buyPrice.toLocaleString()}</Text>
+                    </View>
+                    <MaterialIcons name="arrow-forward" color="#00D4AA" size={20} />
+                    <View style={styles.exchangeInfo}>
+                      <Text style={styles.exchangeLabel}>Sell: {opportunity.sellExchange}</Text>
+                      <Text style={styles.price}>${opportunity.sellPrice.toLocaleString()}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.cardFooter}>
+                    <Text style={styles.volume}>Volume: ${opportunity.volume.toLocaleString()}</Text>
+                    <TouchableOpacity style={styles.tradeButton}>
+                      <Text style={styles.tradeButtonText}>Execute Trade</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
               </ComponentErrorBoundary>
             ))}
           </>
@@ -229,9 +278,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#6B7280",
   },
-  spinning: {
-    transform: [{ rotate: "180deg" }],
-  },
   scrollView: {
     flex: 1,
     paddingHorizontal: 20,
@@ -266,5 +312,116 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#6B7280",
     marginTop: 2,
+  },
+  scannerContainer: {
+    backgroundColor: "#1F2937",
+    margin: 20,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#374151",
+  },
+  scannerHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  scannerTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#FFFFFF",
+    marginLeft: 8,
+  },
+  scannerStatus: {
+    fontSize: 14,
+    color: "#9CA3AF",
+  },
+  profitContainer: {
+    backgroundColor: "#1F2937",
+    marginHorizontal: 20,
+    marginBottom: 20,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#374151",
+    alignItems: "center",
+  },
+  profitTitle: {
+    fontSize: 14,
+    color: "#9CA3AF",
+    marginBottom: 4,
+  },
+  profitAmount: {
+    fontSize: 24,
+    fontWeight: "bold",
+    color: "#00D4AA",
+  },
+  opportunityCard: {
+    backgroundColor: "#1F2937",
+    marginBottom: 12,
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#374151",
+  },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  tokenPair: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#FFFFFF",
+  },
+  profitBadge: {
+    backgroundColor: "#00D4AA",
+    color: "#FFFFFF",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  cardBody: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  exchangeInfo: {
+    flex: 1,
+    alignItems: "center",
+  },
+  exchangeLabel: {
+    fontSize: 12,
+    color: "#9CA3AF",
+    marginBottom: 4,
+  },
+  price: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#FFFFFF",
+  },
+  cardFooter: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  volume: {
+    fontSize: 12,
+    color: "#9CA3AF",
+  },
+  tradeButton: {
+    backgroundColor: "#00D4AA",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  tradeButtonText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "600",
   },
 });

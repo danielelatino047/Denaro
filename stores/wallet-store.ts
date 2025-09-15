@@ -210,9 +210,14 @@ export const useWalletStore = create(
             usdtBalance: usdtBalance + amount
           });
           
-          // Update portfolio balance
-          const { updateBalance } = await import("./portfolio-store").then(m => m.usePortfolioStore.getState());
-          updateBalance("USDT", usdtBalance + amount, usdtBalance + amount);
+          // Update portfolio balance (with error handling)
+          try {
+            const { usePortfolioStore } = await import("./portfolio-store");
+            const { updateBalance } = usePortfolioStore.getState();
+            updateBalance("USDT", usdtBalance + amount, usdtBalance + amount);
+          } catch (error) {
+            console.error('Error syncing deposit with portfolio:', error);
+          }
           
           await (get() as any).saveToStorage();
         }, 3000);
@@ -271,10 +276,15 @@ export const useWalletStore = create(
             );
             set({ withdrawalHistory: updated });
             
-            // Update portfolio balance
-            const { updateBalance } = await import("./portfolio-store").then(m => m.usePortfolioStore.getState());
-            const { usdtBalance } = get();
-            updateBalance("USDT", usdtBalance, usdtBalance);
+            // Update portfolio balance (with error handling)
+            try {
+              const { usePortfolioStore } = await import("./portfolio-store");
+              const { updateBalance } = usePortfolioStore.getState();
+              const { usdtBalance } = get();
+              updateBalance("USDT", usdtBalance, usdtBalance);
+            } catch (error) {
+              console.error('Error syncing withdrawal with portfolio:', error);
+            }
             
             await (get() as any).saveToStorage();
           }, 3000);
@@ -291,7 +301,7 @@ export const useWalletStore = create(
       updateUSDTBalance: async (newBalance: number) => {
         set({ usdtBalance: newBalance });
         
-        // Sync with portfolio store
+        // Sync with portfolio store (with error handling)
         try {
           const { usePortfolioStore } = await import("./portfolio-store");
           const portfolioStore = usePortfolioStore.getState();

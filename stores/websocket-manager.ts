@@ -22,6 +22,7 @@ class WebSocketManager {
   private binanceWs: WebSocket | null = null;
   private bybitWs: WebSocket | null = null;
   private kucoinWs: WebSocket | null = null;
+  private isWebPlatform = Platform.OS === 'web';
   private kucoinToken: string | null = null;
   private kucoinEndpoint: string | null = null;
   
@@ -84,6 +85,11 @@ class WebSocketManager {
   
   // Connect to Binance WebSocket
   private async connectBinance(): Promise<void> {
+    if (this.isWebPlatform) {
+      console.log('WebSocket not supported on web platform, skipping Binance connection');
+      return;
+    }
+    
     if (this.binanceWs?.readyState === WebSocket.OPEN) return;
     
     // Ensure we have symbol mappings
@@ -163,6 +169,11 @@ class WebSocketManager {
   
   // Connect to Bybit WebSocket
   private async connectBybit(): Promise<void> {
+    if (this.isWebPlatform) {
+      console.log('WebSocket not supported on web platform, skipping Bybit connection');
+      return;
+    }
+    
     if (this.bybitWs?.readyState === WebSocket.OPEN) return;
     
     // Ensure we have symbol mappings
@@ -249,6 +260,11 @@ class WebSocketManager {
   
   // Connect to KuCoin WebSocket
   private async connectKuCoin(): Promise<void> {
+    if (this.isWebPlatform) {
+      console.log('WebSocket not supported on web platform, skipping KuCoin connection');
+      return;
+    }
+    
     if (this.kucoinWs?.readyState === WebSocket.OPEN) return;
     
     // Initialize if not done
@@ -409,6 +425,11 @@ class WebSocketManager {
   
   // Public methods
   public async connect(): Promise<void> {
+    if (this.isWebPlatform) {
+      console.log('WebSocket connections disabled on web platform');
+      return;
+    }
+    
     console.log('Connecting to all WebSocket feeds...');
     
     // Get symbol mappings first

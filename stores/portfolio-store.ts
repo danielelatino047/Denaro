@@ -237,7 +237,7 @@ export const usePortfolioStore = create(
           lastUpdated: new Date()
         });
         
-        // Update wallet store with new balance
+        // Update wallet store with new balance (with error handling)
         try {
           const { useWalletStore } = await import('./wallet-store');
           const walletStore = useWalletStore.getState();

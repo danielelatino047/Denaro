@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { combine } from "zustand/middleware";
+import { Platform } from 'react-native';
 import { wsManager, PriceData } from './websocket-manager';
 
 export interface ArbitrageOpportunity {
@@ -252,19 +253,21 @@ export const useArbitrageStore = create(
         // Connect to WebSocket feeds
         await wsManager.connect();
         
-        // Subscribe to price updates
-        const unsubscribe = wsManager.onPriceUpdate((data: PriceData) => {
-          const { priceData } = get();
-          
-          // Update price data map
-          if (!priceData.has(data.symbol)) {
-            priceData.set(data.symbol, new Map());
-          }
-          priceData.get(data.symbol)?.set(data.exchange, data);
-          
-          // Recalculate opportunities with new price
-          useArbitrageStore.getState().calculateOpportunities();
-        });
+        // Subscribe to price updates (only on mobile)
+        if (Platform.OS !== 'web') {
+          wsManager.onPriceUpdate((data: PriceData) => {
+            const { priceData } = get();
+            
+            // Update price data map
+            if (!priceData.has(data.symbol)) {
+              priceData.set(data.symbol, new Map());
+            }
+            priceData.get(data.symbol)?.set(data.exchange, data);
+            
+            // Recalculate opportunities with new price
+            useArbitrageStore.getState().calculateOpportunities();
+          });
+        }
         
         set({ 
           isLiveMode: true,
@@ -379,9 +382,16 @@ export const useArbitrageStore = create(
       fetchOpportunitiesREST: async () => {
         const { isLiveMode } = get();
         
-        // Check if we're in live mode from settings
-        const { settings } = await import('./settings-store').then(m => m.useSettingsStore.getState());
-        const isActuallyLiveMode = settings.isLiveMode;
+        // Check if we're in live mode from settings (with error handling)
+        let isActuallyLiveMode = false;
+        try {
+          const { useSettingsStore } = await import('./settings-store');
+          const { settings } = useSettingsStore.getState();
+          isActuallyLiveMode = settings.isLiveMode;
+        } catch (error) {
+          console.error('Error loading settings in arbitrage store:', error);
+          isActuallyLiveMode = false;
+        }
         
         // Don't show loading for live updates to avoid UI flickering
         if (!isLiveMode) {
@@ -619,9 +629,20 @@ export const useArbitrageStore = create(
       executeArbitrage: async (opportunity: ArbitrageOpportunity, tradeAmount: number = 100) => {
         console.log("Executing arbitrage:", opportunity, "Amount:", tradeAmount);
         
-        // Import portfolio store functions
-        const portfolioStore = await import('./portfolio-store').then(m => m.usePortfolioStore.getState());
-        const { settings } = await import('./settings-store').then(m => m.useSettingsStore.getState());
+        // Import portfolio store functions (with error handling)
+        let portfolioStore: any;
+        let settings: any;
+        
+        try {
+          const { usePortfolioStore } = await import('./portfolio-store');
+          portfolioStore = usePortfolioStore.getState();
+          
+          const { useSettingsStore } = await import('./settings-store');
+          settings = useSettingsStore.getState().settings;
+        } catch (error) {
+          console.error('Error importing stores in executeArbitrage:', error);
+          return;
+        }
         
         if (settings.isLiveMode) {
           // In live mode, check if WalletConnect is enabled
@@ -638,7 +659,7 @@ export const useArbitrageStore = create(
         }
         
         // Demo mode execution
-        const currentUSDT = portfolioStore.balances.find(b => b.symbol === 'USDT')?.amount || 0;
+        const currentUSDT = portfolioStore.balances.find((b: any) => b.symbol === 'USDT')?.amount || 0;
         
         // Check if we have enough USDT for the trade
         if (currentUSDT < tradeAmount) {
@@ -648,7 +669,6 @@ export const useArbitrageStore = create(
         
         // Calculate profit with fees
         const grossProfit = (opportunity.profitPercentage / 100) * tradeAmount;
-        const fees = calculateTradingFees(tradeAmount, opportunity.buyExchange, opportunity.sellExchange);
         const netProfit = grossProfit;  // profitPercentage is already net
         
         console.log(`Trade calculation: Amount: ${tradeAmount}, Net profit: ${netProfit.toFixed(2)}`);
