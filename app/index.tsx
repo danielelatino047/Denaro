@@ -1,12 +1,18 @@
 import { Redirect } from "expo-router";
-import { View } from "react-native";
+import { View, StyleSheet } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});
 
 export default function Index() {
   const insets = useSafeAreaInsets();
   
   return (
-    <View style={{ paddingTop: insets.top }}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <Redirect href="/(tabs)/arbitrage" />
     </View>
   );

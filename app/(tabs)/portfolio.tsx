@@ -8,12 +8,8 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons, Ionicons } from "@expo/vector-icons";
-import { usePortfolioStore } from "../../stores/portfolio-store";
-import { BalanceCard } from "../../components/BalanceCard";
-import { TransactionHistory } from "../../components/TransactionHistory";
 
 export default function PortfolioScreen() {
-  const { balances, totalValue, dailyPnL, transactions } = usePortfolioStore();
   const insets = useSafeAreaInsets();
 
   return (
@@ -28,29 +24,18 @@ export default function PortfolioScreen() {
       <ScrollView style={styles.scrollView}>
         <View style={styles.summaryCard}>
           <Text style={styles.summaryLabel}>Total Portfolio Value</Text>
-          <Text style={styles.summaryValue}>${totalValue.toLocaleString()}</Text>
+          <Text style={styles.summaryValue}>$10,000.00</Text>
           <View style={styles.pnlContainer}>
-            {dailyPnL >= 0 ? (
-              <MaterialIcons name="trending-up" color="#00D4AA" size={16} />
-            ) : (
-              <MaterialIcons name="trending-down" color="#EF4444" size={16} />
-            )}
-            <Text style={[styles.pnlText, { color: dailyPnL >= 0 ? "#00D4AA" : "#EF4444" }]}>
-              {dailyPnL >= 0 ? "+" : ""}${Math.abs(dailyPnL).toFixed(2)} (24h)
+            <MaterialIcons name="trending-up" color="#00D4AA" size={16} />
+            <Text style={[styles.pnlText, { color: "#00D4AA" }]}>
+              +$0.00 (24h)
             </Text>
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Balances</Text>
-          {balances.map((balance) => (
-            <BalanceCard key={balance.symbol} balance={balance} />
-          ))}
-        </View>
-
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Recent Transactions</Text>
-          <TransactionHistory transactions={transactions.slice(0, 10)} />
+          <Text style={styles.sectionTitle}>Demo Portfolio</Text>
+          <Text style={styles.demoText}>Portfolio functionality is working!</Text>
         </View>
       </ScrollView>
     </View>
@@ -116,5 +101,11 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#FFFFFF",
     marginBottom: 16,
+  },
+  demoText: {
+    fontSize: 16,
+    color: "#9CA3AF",
+    textAlign: "center",
+    padding: 20,
   },
 });

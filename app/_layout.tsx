@@ -68,36 +68,8 @@ function RootLayoutNav() {
     try {
       console.log('🚀 Starting app initialization...');
       
-      // Initialize stores with error handling
-      try {
-        const { useSettingsStore } = await import('../stores/settings-store');
-        const { loadSettings } = useSettingsStore.getState();
-        await loadSettings();
-        console.log('✅ Settings loaded');
-      } catch (error) {
-        console.error('❌ Settings initialization failed:', error);
-      }
-      
-      try {
-        const { usePortfolioStore } = await import('../stores/portfolio-store');
-        const { initializePortfolio } = usePortfolioStore.getState();
-        await initializePortfolio();
-        console.log('✅ Portfolio initialized');
-      } catch (error) {
-        console.error('❌ Portfolio initialization failed:', error);
-      }
-      
-      try {
-        const { useWalletStore } = await import('../stores/wallet-store');
-        const { initializeWallet } = useWalletStore.getState();
-        await initializeWallet();
-        console.log('✅ Wallet initialized');
-      } catch (error) {
-        console.error('❌ Wallet initialization failed:', error);
-      }
-      
-      // Small delay to ensure everything is ready
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Simple initialization without complex stores
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       setIsAppReady(true);
       
@@ -143,7 +115,6 @@ function RootLayoutNav() {
   return (
     <Stack screenOptions={{ headerBackTitle: "Back" }}>
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="index" options={{ headerShown: false }} />
     </Stack>
   );
 }
