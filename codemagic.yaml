@@ -76,14 +76,8 @@ workflows:
           # Install dependencies with current versions
           echo "Installing dependencies with current package.json versions..."
           
-          # First install core dependencies to establish baseline
-          npm install expo react react-dom react-native --legacy-peer-deps --force
-          
-          # Install remaining dependencies with conflict resolution
-          npm install --legacy-peer-deps --no-optional --force
-          
-          # Force resolve any remaining conflicts
-          npm audit fix --force || echo "Audit fix completed with warnings"
+          # Install all dependencies with proper conflict resolution
+          npm install --legacy-peer-deps --force
           
           # Verify critical packages
           echo "Verifying package installation:"
@@ -160,7 +154,7 @@ workflows:
           
           # Ensure we have the correct config plugins for current versions
           echo "Installing required prebuild dependencies..."
-          npm install @expo/config-plugins @expo/prebuild-config --save-dev --legacy-peer-deps --force
+          npm install @expo/config-plugins@^54.0.1 @expo/prebuild-config@^54.0.3 --save-dev --legacy-peer-deps --force
           
           # Clear any existing android directory
           rm -rf android
@@ -175,7 +169,7 @@ workflows:
             EXPO_CMD="npx expo"
           fi
           
-          $EXPO_CMD prebuild --platform android --clean --no-install --verbose 2>&1 | tee prebuild.log || {
+          $EXPO_CMD prebuild --platform android --clean --no-install 2>&1 | tee prebuild.log || {
             echo "Prebuild failed, analyzing error..."
             
             # Show the last 50 lines of the log for debugging
@@ -188,15 +182,15 @@ workflows:
             
             # Try prebuild again with different options
             echo "Retrying prebuild with npm install..."
-            $EXPO_CMD prebuild --platform android --clean --verbose || {
+            $EXPO_CMD prebuild --platform android --clean || {
               echo "Second prebuild attempt failed, trying manual dependency resolution..."
               
               # Manual dependency resolution with current versions
               npm install @react-native/gradle-plugin --save-dev --force
-              npm install @expo/config-plugins @expo/prebuild-config --save-dev --force
+              npm install @expo/config-plugins@^54.0.1 @expo/prebuild-config@^54.0.3 --save-dev --force
               
               # Final attempt
-              $EXPO_CMD prebuild --platform android --clean --verbose
+              $EXPO_CMD prebuild --platform android --clean
             }
           }
           
