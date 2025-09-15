@@ -1,17 +1,18 @@
 workflows:
-  android-apk:
-    name: Android APK Build
+  expo-android-apk:
+    name: Expo Android APK Build
     max_build_duration: 60
     instance_type: mac_mini_m1
     environment:
-      node: 18.20.4
-      npm: 10.7.0
-      ndk: r25c
-      java: 17
+      node: 20.11.0
+      npm: 10.2.4
+      vars:
+        EXPO_TOKEN: Encrypted(...) # Add your Expo access token here
     cache:
       cache_paths:
-        - $HOME/.gradle/caches
         - node_modules
+        - ~/.npm
+        - ~/.expo
     triggering:
       events:
         - push
@@ -28,16 +29,15 @@ workflows:
           npm install
       - name: Install Expo CLI
         script: |
-          npm install -g @expo/cli@latest
-      - name: Prebuild for Android
+          npm install -g @expo/cli@latest eas-cli@latest
+      - name: Expo Login
         script: |
-          npx expo prebuild --platform android --clean
-      - name: Build Android APK
+          expo login --non-interactive
+      - name: Build Android APK with EAS
         script: |
-          cd android
-          ./gradlew assembleRelease
+          eas build --platform android --profile preview --non-interactive --wait
     artifacts:
-      - android/app/build/outputs/**/*.apk
+      - "*.apk"
     publishing:
       email:
         recipients:
@@ -46,8 +46,8 @@ workflows:
           success: true
           failure: true
 
-  react-native-ios:
-    name: React Native iOS
+  expo-ios:
+    name: Expo iOS Build
     max_build_duration: 120
     instance_type: mac_mini_m1
     integrations:
@@ -57,161 +57,134 @@ workflows:
         distribution_type: app_store
         bundle_identifier: com.arbitrageswap.ai
       vars:
+        EXPO_TOKEN: Encrypted(...) # Add your Expo access token here
         BUNDLE_ID: "com.arbitrageswap.ai"
-        XCODE_WORKSPACE: "ArbitrageSwapAI.xcworkspace"
-        XCODE_SCHEME: "ArbitrageSwapAI"
-        APP_ID: 1555555551 # <-- Put the right App Store Connect application identifier here
-      node: 18.20.4
-      npm: 10.7.0
+        APP_ID: 1555555551
+      node: 20.11.0
+      npm: 10.2.4
       xcode: latest
-      cocoapods: default
-      ruby: 3.3.4
     cache:
       cache_paths:
-        - $HOME/Library/Caches/CocoaPods
         - node_modules
-        - ios/Pods
+        - ~/.npm
+        - ~/.expo
     triggering:
       events:
         - push
         - tag
-        - pull_request
       branch_patterns:
-        - pattern: develop
+        - pattern: main
           include: true
           source: true
     scripts:
       - name: Install dependencies
         script: |
-          npm ci
+          npm install
       - name: Install Expo CLI
         script: |
-          npm install -g @expo/cli@latest
-      - name: Prebuild for iOS
+          npm install -g @expo/cli@latest eas-cli@latest
+      - name: Expo Login
         script: |
-          npx expo prebuild --platform ios --clean
-      - name: Install CocoaPods dependencies
+          expo login --non-interactive
+      - name: Build iOS with EAS
         script: |
-          cd ios && pod install
-      - name: Increment build number
-        script: |
-          BUILD_NUMBER=$(($BUILD_NUMBER + 1))
-          cd $CM_BUILD_DIR/ios
-          agvtool new-version -all $BUILD_NUMBER
-      - name: Build ipa for distribution
-        script: |
-          cd ios
-          xcode-project build-ipa \
-            --workspace "$XCODE_WORKSPACE" \
-            --scheme "$XCODE_SCHEME"
+          eas build --platform ios --profile production --non-interactive --wait
     artifacts:
-      - build/ios/ipa/*.ipa
-      - /tmp/xcodebuild_logs/*.log
-      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
-      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+      - "*.ipa"
     publishing:
       email:
         recipients:
-          - user@example.com
+          - daniele.latino047@gmail.com
         notify:
           success: true
           failure: false
       app_store_connect:
         auth: integration
-        submit_to_testflight: false
-        beta_groups:
-          - group name 1
-          - group name 2
+        submit_to_testflight: true
         submit_to_app_store: false
 
-  react-native-web:
-    name: React Native Web
-    max_build_duration: 60
+  expo-web:
+    name: Expo Web Build
+    max_build_duration: 30
     instance_type: linux_x2
     environment:
-      node: 18.20.4
-      npm: 10.7.0
+      node: 20.11.0
+      npm: 10.2.4
     cache:
       cache_paths:
         - node_modules
+        - ~/.npm
     triggering:
       events:
         - push
         - pull_request
       branch_patterns:
-        - pattern: develop
+        - pattern: main
           include: true
           source: true
     scripts:
       - name: Install dependencies
         script: |
-          npm ci
+          npm install
       - name: Install Expo CLI
         script: |
           npm install -g @expo/cli@latest
       - name: Build web
         script: |
           npx expo export --platform web
-      - name: Deploy to static hosting
-        script: |
-          echo "Web build completed. Deploy dist folder to your hosting service."
     artifacts:
       - dist/**/*
     publishing:
       email:
         recipients:
-          - user@example.com
+          - daniele.latino047@gmail.com
         notify:
           success: true
           failure: false
 
-  development-build:
-    name: Development Build
+  expo-development:
+    name: Expo Development Build
     max_build_duration: 60
     instance_type: mac_mini_m1
     environment:
-      node: 18.20.4
-      npm: 10.7.0
-      ndk: r25c
-      java: 17
+      node: 20.11.0
+      npm: 10.2.4
+      vars:
+        EXPO_TOKEN: Encrypted(...) # Add your Expo access token here
     cache:
       cache_paths:
         - node_modules
-        - $HOME/.gradle/caches
+        - ~/.npm
+        - ~/.expo
     triggering:
       events:
         - push
       branch_patterns:
-        - pattern: feature/*
+        - pattern: develop
           include: true
           source: true
-        - pattern: develop
+        - pattern: feature/*
           include: true
           source: true
     scripts:
       - name: Install dependencies
         script: |
-          npm ci
+          npm install
       - name: Install Expo CLI
         script: |
-          npm install -g @expo/cli@latest
-      - name: Create development build (Android)
+          npm install -g @expo/cli@latest eas-cli@latest
+      - name: Expo Login
         script: |
-          npx expo prebuild --platform android --clean
-          cd android
-          ./gradlew assembleDebug
-      - name: Create development build (iOS)
+          expo login --non-interactive
+      - name: Build development version
         script: |
-          npx expo prebuild --platform ios --clean
-          cd ios && pod install
-          xcodebuild -workspace ArbitrageSwapAI.xcworkspace -scheme ArbitrageSwapAI -configuration Debug -destination generic/platform=iOS -archivePath $PWD/build/ArbitrageSwapAI.xcarchive archive
+          eas build --platform android --profile development --non-interactive --wait
     artifacts:
-      - android/app/build/outputs/**/*.apk
-      - ios/build/*.xcarchive
+      - "*.apk"
     publishing:
       email:
         recipients:
-          - user@example.com
+          - daniele.latino047@gmail.com
         notify:
           success: true
           failure: false
