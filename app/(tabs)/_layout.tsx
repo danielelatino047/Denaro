@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { TrendingUp, Bot, Settings, Wallet, PieChart } from "lucide-react-native";
+import { MaterialIcons, Ionicons } from "@expo/vector-icons";
 import React from "react";
 
 export default function TabLayout() {
@@ -20,35 +20,35 @@ export default function TabLayout() {
         name="arbitrage"
         options={{
           title: "Arbitrage",
-          tabBarIcon: ({ color }) => <TrendingUp color={color} size={24} />,
+          tabBarIcon: ({ color }) => <MaterialIcons name="trending-up" color={color} size={24} />,
         }}
       />
       <Tabs.Screen
         name="ai-trading"
         options={{
           title: "AI Trading",
-          tabBarIcon: ({ color }) => <Bot color={color} size={24} />,
+          tabBarIcon: ({ color }) => <MaterialIcons name="smart-toy" color={color} size={24} />,
         }}
       />
       <Tabs.Screen
         name="portfolio"
         options={{
           title: "Portfolio",
-          tabBarIcon: ({ color }) => <PieChart color={color} size={24} />,
+          tabBarIcon: ({ color }) => <Ionicons name="pie-chart" color={color} size={24} />,
         }}
       />
       <Tabs.Screen
         name="wallet"
         options={{
           title: "Wallet",
-          tabBarIcon: ({ color }) => <Wallet color={color} size={24} />,
+          tabBarIcon: ({ color }) => <Ionicons name="wallet" color={color} size={24} />,
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
           title: "Settings",
-          tabBarIcon: ({ color }) => <Settings color={color} size={24} />,
+          tabBarIcon: ({ color }) => <Ionicons name="settings" color={color} size={24} />,
         }}
       />
     </Tabs>

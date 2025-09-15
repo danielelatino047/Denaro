@@ -7,7 +7,7 @@ import {
   TouchableOpacity,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { TrendingUp, TrendingDown, History } from "lucide-react-native";
+import { MaterialIcons, Ionicons } from "@expo/vector-icons";
 import { usePortfolioStore } from "../../stores/portfolio-store";
 import { BalanceCard } from "../../components/BalanceCard";
 import { TransactionHistory } from "../../components/TransactionHistory";
@@ -21,7 +21,7 @@ export default function PortfolioScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>Portfolio</Text>
         <TouchableOpacity style={styles.historyButton}>
-          <History color="#00D4AA" size={20} />
+          <MaterialIcons name="history" color="#00D4AA" size={20} />
         </TouchableOpacity>
       </View>
 
@@ -31,9 +31,9 @@ export default function PortfolioScreen() {
           <Text style={styles.summaryValue}>${totalValue.toLocaleString()}</Text>
           <View style={styles.pnlContainer}>
             {dailyPnL >= 0 ? (
-              <TrendingUp color="#00D4AA" size={16} />
+              <MaterialIcons name="trending-up" color="#00D4AA" size={16} />
             ) : (
-              <TrendingDown color="#EF4444" size={16} />
+              <MaterialIcons name="trending-down" color="#EF4444" size={16} />
             )}
             <Text style={[styles.pnlText, { color: dailyPnL >= 0 ? "#00D4AA" : "#EF4444" }]}>
               {dailyPnL >= 0 ? "+" : ""}${Math.abs(dailyPnL).toFixed(2)} (24h)

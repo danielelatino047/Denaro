@@ -7,7 +7,7 @@ import {
   Switch,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Bot } from "lucide-react-native";
+import { MaterialIcons } from "@expo/vector-icons";
 import { useAITradingStore } from "@/stores/ai-trading-store";
 import { TradingStats } from "@/components/TradingStats";
 import { AISettings } from "@/components/AISettings";
@@ -56,7 +56,7 @@ export default function AITradingScreen() {
 
         <View style={styles.infoCard}>
           <View style={styles.infoHeader}>
-            <Bot color="#00D4AA" size={20} />
+            <MaterialIcons name="smart-toy" color="#00D4AA" size={20} />
             <Text style={styles.infoTitle}>🤖 Autonomous AI Trading</Text>
           </View>
           <Text style={styles.infoText}>

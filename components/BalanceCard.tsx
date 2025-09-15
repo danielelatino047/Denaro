@@ -1,6 +1,6 @@
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import { TrendingUp, TrendingDown } from "lucide-react-native";
+import { MaterialIcons } from "@expo/vector-icons";
 import { Balance } from "@/stores/portfolio-store";
 
 interface BalanceCardProps {
@@ -14,9 +14,9 @@ export function BalanceCard({ balance }: BalanceCardProps) {
         <Text style={styles.symbol}>{balance.symbol}</Text>
         <View style={styles.changeContainer}>
           {balance.change24h >= 0 ? (
-            <TrendingUp color="#00D4AA" size={16} />
+            <MaterialIcons name="trending-up" color="#00D4AA" size={16} />
           ) : (
-            <TrendingDown color="#EF4444" size={16} />
+            <MaterialIcons name="trending-down" color="#EF4444" size={16} />
           )}
           <Text style={[styles.change, { color: balance.change24h >= 0 ? "#00D4AA" : "#EF4444" }]}>
             {balance.change24h >= 0 ? "+" : ""}{balance.change24h.toFixed(2)}%

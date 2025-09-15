@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { useWalletStore } from "@/stores/wallet-store";
 import { usePortfolioStore } from "@/stores/portfolio-store";
-import { Wallet, ArrowDownCircle, ArrowUpCircle, Copy, X } from "lucide-react-native";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function WalletScreen() {
@@ -112,7 +112,7 @@ export default function WalletScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Header */}
         <View style={styles.header}>
-          <Wallet size={28} color="#fff" />
+          <Ionicons name="wallet" size={28} color="#fff" />
           <Text style={styles.headerTitle}>Wallet</Text>
         </View>
 
@@ -138,14 +138,14 @@ export default function WalletScreen() {
             style={[styles.actionButton, styles.depositButton]}
             onPress={() => setShowDepositModal(true)}
           >
-            <ArrowDownCircle size={24} color="#fff" />
+            <Ionicons name="arrow-down-circle" size={24} color="#fff" />
             <Text style={styles.actionButtonText}>Deposit</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.actionButton, styles.withdrawButton]}
             onPress={() => setShowWithdrawModal(true)}
           >
-            <ArrowUpCircle size={24} color="#fff" />
+            <Ionicons name="arrow-up-circle" size={24} color="#fff" />
             <Text style={styles.actionButtonText}>Withdraw</Text>
           </TouchableOpacity>
         </View>
@@ -235,7 +235,7 @@ export default function WalletScreen() {
                     style={styles.copyButton}
                     onPress={() => copyToClipboard(currentAddress.address)}
                   >
-                    <Copy size={20} color="#007AFF" />
+                    <Ionicons name="copy" size={20} color="#007AFF" />
                   </TouchableOpacity>
                 </View>
                 {currentAddress.qrCode && Platform.OS !== "web" && (
@@ -258,9 +258,9 @@ export default function WalletScreen() {
                 <View key={item.id} style={styles.historyItem}>
                   <View style={styles.historyIcon}>
                     {item.type === "deposit" ? (
-                      <ArrowDownCircle size={24} color="#4CAF50" />
+                      <Ionicons name="arrow-down-circle" size={24} color="#4CAF50" />
                     ) : (
-                      <ArrowUpCircle size={24} color="#FF9800" />
+                      <Ionicons name="arrow-up-circle" size={24} color="#FF9800" />
                     )}
                   </View>
                   <View style={styles.historyDetails}>
@@ -294,9 +294,9 @@ export default function WalletScreen() {
               transactions.slice(0, 50).map((transaction) => (
                 <View key={transaction.id} style={styles.historyItem}>
                   <View style={styles.historyIcon}>
-                    {transaction.type === "buy" && <ArrowDownCircle size={24} color="#EF4444" />}
-                    {transaction.type === "sell" && <ArrowUpCircle size={24} color="#00D4AA" />}
-                    {transaction.type === "arbitrage" && <ArrowUpCircle size={24} color="#007AFF" />}
+                    {transaction.type === "buy" && <Ionicons name="arrow-down-circle" size={24} color="#EF4444" />}
+                    {transaction.type === "sell" && <Ionicons name="arrow-up-circle" size={24} color="#00D4AA" />}
+                    {transaction.type === "arbitrage" && <Ionicons name="arrow-up-circle" size={24} color="#007AFF" />}
                   </View>
                   <View style={styles.historyDetails}>
                     <Text style={styles.historyTitle}>
@@ -333,7 +333,7 @@ export default function WalletScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Deposit {selectedCoin}</Text>
               <TouchableOpacity onPress={() => setShowDepositModal(false)}>
-                <X size={24} color="#666" />
+                <Ionicons name="close" size={24} color="#666" />
               </TouchableOpacity>
             </View>
             <TextInput
@@ -358,7 +358,7 @@ export default function WalletScreen() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Withdraw {selectedCoin}</Text>
               <TouchableOpacity onPress={() => setShowWithdrawModal(false)}>
-                <X size={24} color="#666" />
+                <Ionicons name="close" size={24} color="#666" />
               </TouchableOpacity>
             </View>
             <TextInput

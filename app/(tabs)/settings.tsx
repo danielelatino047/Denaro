@@ -11,7 +11,7 @@ import {
   Modal,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Shield, Bell, Zap, AlertTriangle, RefreshCw, RotateCcw, Key, X, AlertCircle, Wallet } from "lucide-react-native";
+import { MaterialIcons, Ionicons } from "@expo/vector-icons";
 import { useSettingsStore } from "@/stores/settings-store";
 import { usePortfolioStore } from "@/stores/portfolio-store";
 import { useWalletStore } from "@/stores/wallet-store";
@@ -54,7 +54,7 @@ export default function SettingsScreen() {
       <ScrollView style={styles.scrollView}>
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <AlertTriangle color={settings.isLiveMode ? "#EF4444" : "#00D4AA"} size={20} />
+            <MaterialIcons name="warning" color={settings.isLiveMode ? "#EF4444" : "#00D4AA"} size={20} />
             <Text style={styles.sectionTitle}>Trading Mode</Text>
           </View>
 
@@ -107,7 +107,7 @@ export default function SettingsScreen() {
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Zap color="#00D4AA" size={20} />
+            <Ionicons name="flash" color="#00D4AA" size={20} />
             <Text style={styles.sectionTitle}>Trading Parameters</Text>
           </View>
 
@@ -166,7 +166,7 @@ export default function SettingsScreen() {
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Bell color="#00D4AA" size={20} />
+            <Ionicons name="notifications" color="#00D4AA" size={20} />
             <Text style={styles.sectionTitle}>Notifications</Text>
           </View>
 
@@ -201,7 +201,7 @@ export default function SettingsScreen() {
 
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <RotateCcw color="#00D4AA" size={20} />
+            <MaterialIcons name="refresh" color="#00D4AA" size={20} />
             <Text style={styles.sectionTitle}>Demo Account</Text>
           </View>
 
@@ -210,7 +210,7 @@ export default function SettingsScreen() {
             onPress={handleResetBalance}
             disabled={settings.isLiveMode}
           >
-            <RefreshCw color={settings.isLiveMode ? "#6B7280" : "#EF4444"} size={16} />
+            <MaterialIcons name="refresh" color={settings.isLiveMode ? "#6B7280" : "#EF4444"} size={16} />
             <Text style={[styles.settingButtonText, settings.isLiveMode && styles.disabledText]}>
               Reset Demo Balance
             </Text>
@@ -225,7 +225,7 @@ export default function SettingsScreen() {
         
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
-            <Shield color="#00D4AA" size={20} />
+            <MaterialIcons name="security" color="#00D4AA" size={20} />
             <Text style={styles.sectionTitle}>Live Mode Configuration</Text>
           </View>
 
@@ -234,7 +234,7 @@ export default function SettingsScreen() {
             onPress={() => setShowApiModal(true)}
           >
             <View style={styles.buttonContent}>
-              <Key color="#00D4AA" size={20} />
+              <MaterialIcons name="vpn-key" color="#00D4AA" size={20} />
               <Text style={styles.settingButtonText}>Configure Live Mode</Text>
               {(settings.apiKeys?.configured || settings.walletConnect.enabled) && (
                 <View style={styles.configuredBadge}>
@@ -259,13 +259,13 @@ export default function SettingsScreen() {
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Live Mode Configuration</Text>
             <TouchableOpacity onPress={() => setShowApiModal(false)}>
-              <X size={24} color="#6B7280" />
+              <Ionicons name="close" size={24} color="#6B7280" />
             </TouchableOpacity>
           </View>
           
           <ScrollView style={styles.modalContent}>
             <View style={styles.infoBox}>
-              <AlertCircle size={20} color="#00D4AA" />
+              <MaterialIcons name="info" color="#00D4AA" size={20} />
               <Text style={styles.infoText}>
                 Configure exchange APIs for direct trading or enable WalletConnect for decentralized execution
               </Text>
@@ -330,7 +330,7 @@ export default function SettingsScreen() {
               
               <View style={styles.settingItem}>
                 <View style={styles.walletInfo}>
-                  <Wallet color="#00D4AA" size={20} />
+                  <Ionicons name="wallet" color="#00D4AA" size={20} />
                   <View style={styles.walletTextContainer}>
                     <Text style={styles.settingLabel}>WalletConnect</Text>
                     {settings.walletConnect.connectedAddress && (
@@ -378,7 +378,7 @@ export default function SettingsScreen() {
 
             {settings.isLiveMode && (
               <View style={styles.warningBox}>
-                <AlertCircle size={20} color="#EF4444" />
+                <MaterialIcons name="warning" color="#EF4444" size={20} />
                 <Text style={styles.warningText}>
                   Live trading is enabled. These credentials will be used for real transactions.
                 </Text>
@@ -434,7 +434,7 @@ export default function SettingsScreen() {
             <View style={styles.resetModalHeader}>
               <Text style={styles.resetModalTitle}>Reset Demo Balance</Text>
               <TouchableOpacity onPress={() => setShowResetModal(false)}>
-                <X size={24} color="#6B7280" />
+                <Ionicons name="close" size={24} color="#6B7280" />
               </TouchableOpacity>
             </View>
             

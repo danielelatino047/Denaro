@@ -1,6 +1,6 @@
 import React from "react";
 import { StyleSheet, Text, View, TextInput } from "react-native";
-import { Settings } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { AITradingSettings } from "@/stores/ai-trading-store";
 
 interface AISettingsProps {
@@ -12,7 +12,7 @@ export function AISettings({ settings, onUpdateSettings }: AISettingsProps) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Settings color="#00D4AA" size={20} />
+        <Ionicons name="settings" color="#00D4AA" size={20} />
         <Text style={styles.title}>AI Trading Configuration</Text>
       </View>
 

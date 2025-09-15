@@ -6,7 +6,7 @@ import {
   Animated,
   useWindowDimensions,
 } from "react-native";
-import { Brain, Zap, Target, Activity } from "lucide-react-native";
+import { MaterialIcons, Ionicons } from "@expo/vector-icons";
 
 interface AIScannerDisplayProps {
   isScanning: boolean;
@@ -110,7 +110,7 @@ export function AIScannerDisplay({
     return (
       <View style={styles.container}>
         <View style={styles.inactiveContainer}>
-          <Brain color="#6B7280" size={48} />
+          <MaterialIcons name="psychology" color="#6B7280" size={48} />
           <Text style={styles.inactiveTitle}>AI Scanner Offline</Text>
           <Text style={styles.inactiveSubtitle}>Enable AI Trading to start scanning</Text>
         </View>
@@ -153,19 +153,19 @@ export function AIScannerDisplay({
               { transform: [{ scale: pulseScale }] }
             ]}
           >
-            <Brain color="#00D4AA" size={32} />
+            <MaterialIcons name="psychology" color="#00D4AA" size={32} />
           </Animated.View>
           
           {/* Activity indicators */}
           <View style={styles.activityIndicators}>
             <View style={[styles.indicator, styles.indicator1]}>
-              <Zap color="#00D4AA" size={16} />
+              <Ionicons name="flash" color="#00D4AA" size={16} />
             </View>
             <View style={[styles.indicator, styles.indicator2]}>
-              <Target color="#00D4AA" size={16} />
+              <MaterialIcons name="gps-fixed" color="#00D4AA" size={16} />
             </View>
             <View style={[styles.indicator, styles.indicator3]}>
-              <Activity color="#00D4AA" size={16} />
+              <MaterialIcons name="show-chart" color="#00D4AA" size={16} />
             </View>
           </View>
         </View>

@@ -5,13 +5,12 @@ workflows:
     instance_type: mac_mini_m1
     environment:
       node: 20.11.0
-      npm: 10.2.4
       vars:
         EXPO_TOKEN: $EXPO_TOKEN # Set this in Codemagic environment variables
     cache:
       cache_paths:
         - node_modules
-        - ~/.npm
+        - ~/.bun
         - ~/.expo
     triggering:
       events:
@@ -24,17 +23,26 @@ workflows:
           include: true
           source: true
     scripts:
+      - name: Install Bun
+        script: |
+          curl -fsSL https://bun.sh/install | bash
+          export PATH="$HOME/.bun/bin:$PATH"
+          echo 'export PATH="$HOME/.bun/bin:$PATH"' >> ~/.bashrc
       - name: Install dependencies
         script: |
-          npm install
+          export PATH="$HOME/.bun/bin:$PATH"
+          bun install --frozen-lockfile
       - name: Install Expo CLI
         script: |
-          npm install -g @expo/cli@latest eas-cli@latest
+          export PATH="$HOME/.bun/bin:$PATH"
+          bun add -g @expo/cli@latest eas-cli@latest
       - name: Expo Login
         script: |
+          export PATH="$HOME/.bun/bin:$PATH"
           expo login --non-interactive
       - name: Build Android APK with EAS
         script: |
+          export PATH="$HOME/.bun/bin:$PATH"
           eas build --platform android --profile preview --non-interactive --wait
     artifacts:
       - "*.apk"

@@ -9,7 +9,7 @@ import {
   Platform,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { RefreshCw, Zap, Activity, Clock, Play, Pause, Wifi } from "lucide-react-native";
+import { MaterialIcons, Ionicons } from "@expo/vector-icons";
 import { useArbitrageStore } from "@/stores/arbitrage-store";
 import { ArbitrageCard } from "@/components/ArbitrageCard";
 import { ProfitSummary } from "@/components/ProfitSummary";
@@ -66,16 +66,16 @@ export default function ArbitrageScreen() {
           <Text style={styles.title}>Arbitrage Scanner</Text>
           <View style={styles.statusRow}>
             {wsConnected ? (
-              <Wifi color="#00D4AA" size={14} />
+              <Ionicons name="wifi" color="#00D4AA" size={14} />
             ) : (
-              <Activity color={isLiveMode ? "#00D4AA" : "#6B7280"} size={14} />
+              <MaterialIcons name="show-chart" color={isLiveMode ? "#00D4AA" : "#6B7280"} size={14} />
             )}
             <Text style={styles.statusText}>
               {wsConnected ? 'WebSocket Live' : isLiveMode ? 'REST API (30s)' : 'Paused'}
             </Text>
             {lastUpdateTime && (
               <>
-                <Clock color="#6B7280" size={14} />
+                <MaterialIcons name="access-time" color="#6B7280" size={14} />
                 <Text style={styles.statusText}>
                   {lastUpdateTime.toLocaleTimeString()}
                 </Text>
@@ -89,9 +89,9 @@ export default function ArbitrageScreen() {
             onPress={toggleLiveMode}
           >
             {isLiveMode ? (
-              <Pause color={"#FFFFFF"} size={16} />
+              <Ionicons name="pause" color={"#FFFFFF"} size={16} />
             ) : (
-              <Play color={"#00D4AA"} size={16} />
+              <Ionicons name="play" color={"#00D4AA"} size={16} />
             )}
           </TouchableOpacity>
           <TouchableOpacity
@@ -99,10 +99,10 @@ export default function ArbitrageScreen() {
             onPress={handleManualRefresh}
             disabled={isLoading}
           >
-            <RefreshCw 
+            <MaterialIcons 
+              name="refresh" 
               color="#00D4AA" 
               size={20} 
-              style={isLoading ? styles.spinning : undefined}
             />
           </TouchableOpacity>
         </View>
@@ -130,7 +130,7 @@ export default function ArbitrageScreen() {
       >
         {opportunities.length === 0 && !isLoading ? (
           <View style={styles.emptyState}>
-            <Zap color="#6B7280" size={48} />
+            <Ionicons name="flash" color="#6B7280" size={48} />
             <Text style={styles.emptyTitle}>No Opportunities Found</Text>
             <Text style={styles.emptyDescription}>
               {isLiveMode 
@@ -141,7 +141,7 @@ export default function ArbitrageScreen() {
           </View>
         ) : isLoading && opportunities.length === 0 ? (
           <View style={styles.emptyState}>
-            <Activity color="#00D4AA" size={48} />
+            <MaterialIcons name="show-chart" color="#00D4AA" size={48} />
             <Text style={styles.emptyTitle}>Scanning Markets...</Text>
             <Text style={styles.emptyDescription}>
               Fetching live prices from Binance, Bybit & KuCoin across 30+ coins
