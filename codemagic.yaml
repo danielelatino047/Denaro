@@ -26,23 +26,22 @@ workflows:
       - name: Install Bun
         script: |
           curl -fsSL https://bun.sh/install | bash
+          source ~/.bashrc
           export PATH="$HOME/.bun/bin:$PATH"
-          echo 'export PATH="$HOME/.bun/bin:$PATH"' >> ~/.bashrc
       - name: Install dependencies
         script: |
           export PATH="$HOME/.bun/bin:$PATH"
           bun install --frozen-lockfile
-      - name: Install Expo CLI
+      - name: Install Expo CLI globally with npm
         script: |
-          export PATH="$HOME/.bun/bin:$PATH"
-          bun add -g @expo/cli@latest eas-cli@latest
+          npm install -g @expo/cli@latest eas-cli@latest
+          which expo
+          which eas
       - name: Expo Login
         script: |
-          export PATH="$HOME/.bun/bin:$PATH"
           expo login --non-interactive
       - name: Build Android APK with EAS
         script: |
-          export PATH="$HOME/.bun/bin:$PATH"
           eas build --platform android --profile preview --non-interactive --wait
     artifacts:
       - "*.apk"
