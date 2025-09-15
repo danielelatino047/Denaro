@@ -4,6 +4,9 @@ import { StyleSheet, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import ErrorBoundary from "../components/ErrorBoundary";
 
+// Ensure proper initialization
+console.log('📱 App Layout Loading...');
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -20,6 +23,14 @@ function RootLayoutNav() {
 
 export default function RootLayout() {
   console.log('🚀 App starting...');
+  
+  // Add error handling for startup
+  React.useEffect(() => {
+    console.log('✅ RootLayout mounted successfully');
+    return () => {
+      console.log('🔄 RootLayout unmounting');
+    };
+  }, []);
 
   return (
     <ErrorBoundary>
