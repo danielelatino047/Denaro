@@ -1,0 +1,245 @@
+workflows:
+  react-native-android:
+    name: React Native Android
+    max_build_duration: 120
+    instance_type: mac_mini_m1
+    integrations:
+      app_store_connect: codemagic
+    environment:
+      android_signing:
+        - keystore_reference
+      groups:
+        - google_play # <-- (Includes GCLOUD_SERVICE_ACCOUNT_CREDENTIALS)
+      vars:
+        PACKAGE_NAME: "com.arbitrageswap.ai"
+        GOOGLE_PLAY_TRACK: internal
+      node: 18.20.4
+      npm: 10.7.0
+      ndk: r25c
+      java: 17
+      ruby: 3.3.4
+    cache:
+      cache_paths:
+        - $HOME/.gradle/caches
+        - $FLUTTER_ROOT/.pub-cache
+        - $HOME/Library/Caches/CocoaPods
+        - node_modules
+    triggering:
+      events:
+        - push
+        - tag
+        - pull_request
+      branch_patterns:
+        - pattern: develop
+          include: true
+          source: true
+    scripts:
+      - name: Install dependencies
+        script: |
+          npm ci
+      - name: Install Expo CLI
+        script: |
+          npm install -g @expo/cli@latest
+      - name: Set up local properties
+        script: |
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > "$CM_BUILD_DIR/android/local.properties"
+      - name: Prebuild for Android
+        script: |
+          npx expo prebuild --platform android --clean
+      - name: Build Android release
+        script: |
+          LATEST_GOOGLE_PLAY_BUILD_NUMBER=$(google-play get-latest-build-number --package-name "$PACKAGE_NAME")
+          if [ -z "$LATEST_GOOGLE_PLAY_BUILD_NUMBER" ]; then
+              # fallback in case no build number was found from Google Play
+              BUILD_NUMBER=$(($(git rev-list --all --count) + 1))
+          else
+              BUILD_NUMBER=$(($LATEST_GOOGLE_PLAY_BUILD_NUMBER + 1))
+          fi
+          cd android
+          ./gradlew bundleRelease \
+              -PversionCode=$BUILD_NUMBER \
+              -PversionName=1.0.$BUILD_NUMBER
+    artifacts:
+      - android/app/build/outputs/**/*.aab
+      - android/app/build/outputs/**/*.apk
+    publishing:
+      email:
+        recipients:
+          - user@example.com
+        notify:
+          success: true
+          failure: false
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: $GOOGLE_PLAY_TRACK
+        submit_as_draft: true
+
+  react-native-ios:
+    name: React Native iOS
+    max_build_duration: 120
+    instance_type: mac_mini_m1
+    integrations:
+      app_store_connect: codemagic
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.arbitrageswap.ai
+      vars:
+        BUNDLE_ID: "com.arbitrageswap.ai"
+        XCODE_WORKSPACE: "ArbitrageSwapAI.xcworkspace"
+        XCODE_SCHEME: "ArbitrageSwapAI"
+        APP_ID: 1555555551 # <-- Put the right App Store Connect application identifier here
+      node: 18.20.4
+      npm: 10.7.0
+      xcode: latest
+      cocoapods: default
+      ruby: 3.3.4
+    cache:
+      cache_paths:
+        - $HOME/Library/Caches/CocoaPods
+        - node_modules
+        - ios/Pods
+    triggering:
+      events:
+        - push
+        - tag
+        - pull_request
+      branch_patterns:
+        - pattern: develop
+          include: true
+          source: true
+    scripts:
+      - name: Install dependencies
+        script: |
+          npm ci
+      - name: Install Expo CLI
+        script: |
+          npm install -g @expo/cli@latest
+      - name: Prebuild for iOS
+        script: |
+          npx expo prebuild --platform ios --clean
+      - name: Install CocoaPods dependencies
+        script: |
+          cd ios && pod install
+      - name: Increment build number
+        script: |
+          BUILD_NUMBER=$(($BUILD_NUMBER + 1))
+          cd $CM_BUILD_DIR/ios
+          agvtool new-version -all $BUILD_NUMBER
+      - name: Build ipa for distribution
+        script: |
+          cd ios
+          xcode-project build-ipa \
+            --workspace "$XCODE_WORKSPACE" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+    publishing:
+      email:
+        recipients:
+          - user@example.com
+        notify:
+          success: true
+          failure: false
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: false
+        beta_groups:
+          - group name 1
+          - group name 2
+        submit_to_app_store: false
+
+  react-native-web:
+    name: React Native Web
+    max_build_duration: 60
+    instance_type: linux_x2
+    environment:
+      node: 18.20.4
+      npm: 10.7.0
+    cache:
+      cache_paths:
+        - node_modules
+    triggering:
+      events:
+        - push
+        - pull_request
+      branch_patterns:
+        - pattern: develop
+          include: true
+          source: true
+    scripts:
+      - name: Install dependencies
+        script: |
+          npm ci
+      - name: Install Expo CLI
+        script: |
+          npm install -g @expo/cli@latest
+      - name: Build web
+        script: |
+          npx expo export --platform web
+      - name: Deploy to static hosting
+        script: |
+          echo "Web build completed. Deploy dist folder to your hosting service."
+    artifacts:
+      - dist/**/*
+    publishing:
+      email:
+        recipients:
+          - user@example.com
+        notify:
+          success: true
+          failure: false
+
+  development-build:
+    name: Development Build
+    max_build_duration: 60
+    instance_type: mac_mini_m1
+    environment:
+      node: 18.20.4
+      npm: 10.7.0
+      ndk: r25c
+      java: 17
+    cache:
+      cache_paths:
+        - node_modules
+        - $HOME/.gradle/caches
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: feature/*
+          include: true
+          source: true
+        - pattern: develop
+          include: true
+          source: true
+    scripts:
+      - name: Install dependencies
+        script: |
+          npm ci
+      - name: Install Expo CLI
+        script: |
+          npm install -g @expo/cli@latest
+      - name: Create development build (Android)
+        script: |
+          npx expo prebuild --platform android --clean
+          cd android
+          ./gradlew assembleDebug
+      - name: Create development build (iOS)
+        script: |
+          npx expo prebuild --platform ios --clean
+          cd ios && pod install
+          xcodebuild -workspace ArbitrageSwapAI.xcworkspace -scheme ArbitrageSwapAI -configuration Debug -destination generic/platform=iOS -archivePath $PWD/build/ArbitrageSwapAI.xcarchive archive
+    artifacts:
+      - android/app/build/outputs/**/*.apk
+      - ios/build/*.xcarchive
+    publishing:
+      email:
+        recipients:
+          - user@example.com
+        notify:
+          success: true
+          failure: false
