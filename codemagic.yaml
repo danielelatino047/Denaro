@@ -1,51 +1,172 @@
 workflows:
-  # 1. Debug-Build für schnelles Testen
+  # 1. Debug-Build für schnelles Testen (Gradle)
   debug-apk:
     name: Debug APK Build
     max_build_duration: 60
     instance_type: mac_mini_m1
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: 'main'
+          include: true
+        - pattern: 'develop'
+          include: true
     environment:
+      android_signing:
+        - keystore_reference
+      groups:
+        - google_play
+      vars:
+        PACKAGE_NAME: "com.yourcompany.yourapp" # Anpassen an Ihre App
       node: 20.11.0
+      java: 17
+    cache:
+      cache_paths:
+        - $HOME/.gradle/caches
+        - node_modules
     scripts:
-      - name: Install dependencies
-        script: npm install
+      - name: Install Node dependencies
+        script: |
+          npm ci
+      - name: Generate Android project
+        script: |
+          npx expo prebuild --platform android --clean
+      - name: Set up local.properties
+        script: |
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > android/local.properties
       - name: Build Debug APK
         script: |
           cd android
-          ./gradlew assembleDebug
+          chmod +x ./gradlew
+          ./gradlew assembleDebug --stacktrace
     artifacts:
       - android/app/build/outputs/**/*.apk
+      - android/app/build/outputs/**/mapping.txt
+    publishing:
+      email:
+        recipients:
+          - your-email@example.com # Ihre E-Mail-Adresse
+        notify:
+          success: true
+          failure: true
 
   # 2. Release-Build mit Expo/EAS
   expo-android-apk:
     name: Expo Android APK Build
-    max_build_duration: 60
+    max_build_duration: 120
     instance_type: mac_mini_m1
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: 'main'
+          include: true
+        - pattern: 'release/*'
+          include: true
     environment:
-      node: 20.11.0
+      groups:
+        - expo_credentials
       vars:
-        EXPO_TOKEN: $EXPO_TOKEN # Set this in Codemagic environment variables
+        EXPO_TOKEN: $EXPO_TOKEN
+      node: 20.11.0
     cache:
       cache_paths:
         - node_modules
-        - ~/.bun
+        - ~/.npm
         - ~/.expo
     scripts:
-      - name: Setup Environment
-        script: |
-          npm install -g @expo/cli eas-cli
-      - name: Install Dependencies
-        script: npm install
-      - name: Authenticate with Expo
+      - name: Check Expo Token
         script: |
           if [ -z "$EXPO_TOKEN" ]; then
-            echo "EXPO_TOKEN not set"; exit 1
+            echo "❌ EXPO_TOKEN ist nicht gesetzt!"
+            echo "Bitte setzen Sie EXPO_TOKEN in den Codemagic Environment Variables."
+            echo "Gehen Sie zu: App Settings > Environment variables > Add variable"
+            echo "Name: EXPO_TOKEN"
+            echo "Value: Ihr Expo Access Token"
+            exit 1
           fi
-          eas whoami || eas login --token $EXPO_TOKEN
-      - name: Build Release APK
+          echo "✅ EXPO_TOKEN ist gesetzt"
+      - name: Install global dependencies
         script: |
-          eas build --platform android --profile production --non-interactive --wait
-          # APK in build folder kopieren (falls vorhanden)
-          find . -name "*.apk" -exec cp {} $CM_BUILD_DIR/ \;
+          npm install -g @expo/cli@latest eas-cli@latest
+      - name: Install project dependencies
+        script: |
+          npm ci
+      - name: Verify Expo CLI installation
+        script: |
+          which expo || (echo "Expo CLI nicht gefunden" && exit 1)
+          which eas || (echo "EAS CLI nicht gefunden" && exit 1)
+          expo --version
+          eas --version
+      - name: Authenticate with Expo
+        script: |
+          echo "Authentifizierung mit Expo..."
+          eas whoami || eas login --non-interactive
+      - name: Configure EAS Build
+        script: |
+          # Erstelle eas.json falls nicht vorhanden
+          if [ ! -f "eas.json" ]; then
+            echo "Erstelle eas.json..."
+            cat > eas.json << 'EOF'
+          {
+            "cli": {
+              "version": ">= 5.2.0"
+            },
+            "build": {
+              "development": {
+                "developmentClient": true,
+                "distribution": "internal"
+              },
+              "preview": {
+                "distribution": "internal",
+                "android": {
+                  "buildType": "apk"
+                }
+              },
+              "production": {
+                "android": {
+                  "buildType": "apk"
+                }
+              }
+            },
+            "submit": {
+              "production": {}
+            }
+          }
+          EOF
+          fi
+      - name: Build Release APK with EAS
+        script: |
+          echo "Starte EAS Build..."
+          eas build --platform android --profile production --non-interactive --wait --clear-cache
+      - name: Download and copy APK files
+        script: |
+          echo "Suche nach APK-Dateien..."
+          # EAS lädt APKs normalerweise herunter, suche sie
+          find . -name "*.apk" -type f 2>/dev/null | while read apk; do
+            echo "Gefundene APK: $apk"
+            cp "$apk" "$CM_BUILD_DIR/" || echo "Fehler beim Kopieren von $apk"
+          done
+          
+          # Fallback: Versuche APK über EAS CLI herunterzuladen
+          echo "Versuche APK über EAS CLI herunterzuladen..."
+          eas build:list --platform android --limit 1 --json > builds.json || echo "Konnte Build-Liste nicht abrufen"
+          
+          # Liste alle Dateien im Build-Verzeichnis
+          echo "Dateien im CM_BUILD_DIR:"
+          ls -la "$CM_BUILD_DIR/" || echo "CM_BUILD_DIR nicht verfügbar"
+          
+          echo "Alle APK-Dateien im Projekt:"
+          find . -name "*.apk" -type f 2>/dev/null || echo "Keine APK-Dateien gefunden"
     artifacts:
       - "*.apk"
+      - "$CM_BUILD_DIR/*.apk"
+      - builds.json
+    publishing:
+      email:
+        recipients:
+          - your-email@example.com # Ihre E-Mail-Adresse
+        notify:
+          success: true
+          failure: true
