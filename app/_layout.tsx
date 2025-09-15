@@ -68,8 +68,30 @@ function RootLayoutNav() {
     try {
       console.log('🚀 Starting app initialization...');
       
-      // Simple initialization without complex stores
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Initialize stores safely
+      try {
+        const { useSettingsStore } = await import('../stores/settings-store');
+        await useSettingsStore.getState().loadSettings();
+        console.log('✅ Settings store initialized');
+      } catch (error) {
+        console.error('⚠️ Settings store initialization failed:', error);
+      }
+      
+      try {
+        const { usePortfolioStore } = await import('../stores/portfolio-store');
+        await usePortfolioStore.getState().initializePortfolio();
+        console.log('✅ Portfolio store initialized');
+      } catch (error) {
+        console.error('⚠️ Portfolio store initialization failed:', error);
+      }
+      
+      try {
+        const { useWalletStore } = await import('../stores/wallet-store');
+        await useWalletStore.getState().initializeWallet();
+        console.log('✅ Wallet store initialized');
+      } catch (error) {
+        console.error('⚠️ Wallet store initialization failed:', error);
+      }
       
       setIsAppReady(true);
       

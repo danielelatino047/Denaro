@@ -237,14 +237,8 @@ export const usePortfolioStore = create(
           lastUpdated: new Date()
         });
         
-        // Update wallet store with new balance (with error handling)
-        try {
-          const { useWalletStore } = await import('./wallet-store');
-          const walletStore = useWalletStore.getState();
-          await walletStore.updateUSDTBalance(resetAmount);
-        } catch (error) {
-          console.error('Error syncing reset balance with wallet:', error);
-        }
+        // Wallet sync disabled to avoid circular imports
+        console.log('Wallet sync disabled - avoiding circular imports');
         
         // Clear storage
         try {

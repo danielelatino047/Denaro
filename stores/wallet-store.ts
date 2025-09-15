@@ -210,14 +210,8 @@ export const useWalletStore = create(
             usdtBalance: usdtBalance + amount
           });
           
-          // Update portfolio balance (with error handling)
-          try {
-            const { usePortfolioStore } = await import("./portfolio-store");
-            const { updateBalance } = usePortfolioStore.getState();
-            updateBalance("USDT", usdtBalance + amount, usdtBalance + amount);
-          } catch (error) {
-            console.error('Error syncing deposit with portfolio:', error);
-          }
+          // Portfolio sync disabled to avoid circular imports
+          console.log('Portfolio sync disabled - avoiding circular imports');
           
           await (get() as any).saveToStorage();
         }, 3000);
@@ -276,15 +270,8 @@ export const useWalletStore = create(
             );
             set({ withdrawalHistory: updated });
             
-            // Update portfolio balance (with error handling)
-            try {
-              const { usePortfolioStore } = await import("./portfolio-store");
-              const { updateBalance } = usePortfolioStore.getState();
-              const { usdtBalance } = get();
-              updateBalance("USDT", usdtBalance, usdtBalance);
-            } catch (error) {
-              console.error('Error syncing withdrawal with portfolio:', error);
-            }
+            // Portfolio sync disabled to avoid circular imports
+            console.log('Portfolio sync disabled - avoiding circular imports');
             
             await (get() as any).saveToStorage();
           }, 3000);
@@ -301,15 +288,8 @@ export const useWalletStore = create(
       updateUSDTBalance: async (newBalance: number) => {
         set({ usdtBalance: newBalance });
         
-        // Sync with portfolio store (with error handling)
-        try {
-          const { usePortfolioStore } = await import("./portfolio-store");
-          const portfolioStore = usePortfolioStore.getState();
-          portfolioStore.updateBalance("USDT", newBalance, newBalance);
-          console.log('Synced wallet USDT balance with portfolio:', newBalance);
-        } catch (error) {
-          console.error('Error syncing wallet balance with portfolio:', error);
-        }
+        // Portfolio sync disabled to avoid circular imports
+        console.log('Portfolio sync disabled - avoiding circular imports');
         
         await (get() as any).saveToStorage();
       },
