@@ -19,6 +19,8 @@ function RootLayoutNav() {
 }
 
 export default function RootLayout() {
+  console.log('🚀 App starting...');
+
   return (
     <ErrorBoundary>
       <SafeAreaProvider>
