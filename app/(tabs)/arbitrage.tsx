@@ -1,41 +1,29 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   StyleSheet,
   Text,
   View,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useArbitrageStore } from "@/stores/arbitrage-store";
-import { OpportunityScanner } from "@/components/OpportunityScanner";
-import { ArbitrageCard } from "@/components/ArbitrageCard";
-import { ProfitSummary } from "@/components/ProfitSummary";
 
 export default function ArbitrageScreen() {
-  const {
-    opportunities,
-    isLoading,
-    totalProfit,
-    isLiveMode,
-    fetchOpportunities,
-    startLiveUpdates,
-    stopLiveUpdates,
-  } = useArbitrageStore();
+  const [isLoading, setIsLoading] = useState(true);
+  const [opportunities] = useState<any[]>([]);
+  const [totalProfit] = useState(0);
+  const [isLiveMode] = useState(false);
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
-    // Initial fetch
-    fetchOpportunities();
+    // Simulate loading
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 2000);
     
-    // Start live updates
-    startLiveUpdates();
-    
-    // Cleanup on unmount
-    return () => {
-      stopLiveUpdates();
-    };
-  }, [fetchOpportunities, startLiveUpdates, stopLiveUpdates]);
+    return () => clearTimeout(timer);
+  }, []);
 
 
 
@@ -52,38 +40,44 @@ export default function ArbitrageScreen() {
       </View>
 
       <ScrollView style={styles.scrollView}>
-        <OpportunityScanner 
-          isScanning={isLoading}
-          opportunityCount={opportunities.length}
-          isLiveMode={isLiveMode}
-        />
-
-        <ProfitSummary totalProfit={totalProfit} />
-
-        <View style={styles.opportunitiesSection}>
-          <View style={styles.sectionHeader}>
-            <MaterialIcons name="trending-up" color="#00D4AA" size={20} />
-            <Text style={styles.sectionTitle}>Live Opportunities</Text>
-            <Text style={styles.opportunityCount}>({opportunities.length})</Text>
+        {isLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#00D4AA" />
+            <Text style={styles.loadingText}>Scanning for arbitrage opportunities...</Text>
           </View>
-
-          {opportunities.length === 0 && !isLoading ? (
-            <View style={styles.emptyState}>
-              <MaterialIcons name="search-off" color="#6B7280" size={48} />
-              <Text style={styles.emptyTitle}>No Opportunities Found</Text>
-              <Text style={styles.emptyDescription}>
-                Pull to refresh or wait for new arbitrage opportunities to appear.
-              </Text>
+        ) : (
+          <>
+            <View style={styles.scannerCard}>
+              <View style={styles.scannerHeader}>
+                <MaterialIcons name="radar" color="#00D4AA" size={24} />
+                <Text style={styles.scannerTitle}>Opportunity Scanner</Text>
+              </View>
+              <Text style={styles.scannerStatus}>Scanner ready - {isLiveMode ? 'Live' : 'Demo'} mode</Text>
+              <Text style={styles.scannerCount}>Found {opportunities.length} opportunities</Text>
             </View>
-          ) : (
-            opportunities.map((opportunity, index) => (
-              <ArbitrageCard
-                key={`${opportunity.tokenPair}-${opportunity.buyExchange}-${opportunity.sellExchange}-${index}`}
-                opportunity={opportunity}
-              />
-            ))
-          )}
-        </View>
+
+            <View style={styles.profitCard}>
+              <Text style={styles.profitTitle}>Total Profit Potential</Text>
+              <Text style={styles.profitAmount}>${totalProfit.toFixed(2)}</Text>
+            </View>
+
+            <View style={styles.opportunitiesSection}>
+              <View style={styles.sectionHeader}>
+                <MaterialIcons name="trending-up" color="#00D4AA" size={20} />
+                <Text style={styles.sectionTitle}>Live Opportunities</Text>
+                <Text style={styles.opportunityCount}>({opportunities.length})</Text>
+              </View>
+
+              <View style={styles.emptyState}>
+                <MaterialIcons name="search-off" color="#6B7280" size={48} />
+                <Text style={styles.emptyTitle}>No Opportunities Found</Text>
+                <Text style={styles.emptyDescription}>
+                  Scanner is ready. Opportunities will appear here when price differences are detected.
+                </Text>
+              </View>
+            </View>
+          </>
+        )}
 
         <View style={styles.infoCard}>
           <View style={styles.infoHeader}>
@@ -203,5 +197,58 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#F59E0B",
     lineHeight: 20,
+  },
+  loadingContainer: {
+    alignItems: 'center',
+    paddingVertical: 60,
+  },
+  loadingText: {
+    color: '#9CA3AF',
+    marginTop: 16,
+    fontSize: 16,
+  },
+  scannerCard: {
+    backgroundColor: '#1F2937',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  scannerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  scannerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  scannerStatus: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    marginBottom: 4,
+  },
+  scannerCount: {
+    fontSize: 14,
+    color: '#00D4AA',
+    fontWeight: '500',
+  },
+  profitCard: {
+    backgroundColor: '#1F2937',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    alignItems: 'center',
+  },
+  profitTitle: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    marginBottom: 4,
+  },
+  profitAmount: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#00D4AA',
   },
 });

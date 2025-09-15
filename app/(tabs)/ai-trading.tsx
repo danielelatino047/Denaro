@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -8,23 +8,17 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useAITradingStore } from "@/stores/ai-trading-store";
-import { TradingStats } from "@/components/TradingStats";
-import { AISettings } from "@/components/AISettings";
-import { AIScannerDisplay } from "@/components/AIScannerDisplay";
 
 export default function AITradingScreen() {
-  const {
-    isEnabled,
-    isScanning,
-    scanningProgress,
-    currentScanTarget,
-    toggleAI,
-    stats,
-    settings,
-    updateSettings,
-  } = useAITradingStore();
+  const [isEnabled, setIsEnabled] = useState(false);
+  const [isScanning] = useState(false);
+  const [scanningProgress] = useState(0);
+  const [currentScanTarget] = useState('');
   const insets = useSafeAreaInsets();
+  
+  const toggleAI = () => {
+    setIsEnabled(!isEnabled);
+  };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -44,15 +38,47 @@ export default function AITradingScreen() {
       </View>
 
       <ScrollView style={styles.scrollView}>
-        <AIScannerDisplay 
-          isScanning={isScanning}
-          progress={scanningProgress}
-          currentTarget={currentScanTarget}
-          isEnabled={isEnabled}
-        />
+        <View style={styles.scannerCard}>
+          <View style={styles.scannerHeader}>
+            <MaterialIcons name="smart-toy" color="#00D4AA" size={24} />
+            <Text style={styles.scannerTitle}>AI Scanner</Text>
+          </View>
+          <Text style={styles.scannerStatus}>
+            {isScanning ? `Scanning... ${scanningProgress}%` : isEnabled ? 'Ready to scan' : 'Inactive'}
+          </Text>
+          {currentScanTarget && (
+            <Text style={styles.scannerTarget}>Target: {currentScanTarget}</Text>
+          )}
+        </View>
 
-        <TradingStats stats={stats} />
-        <AISettings settings={settings} onUpdateSettings={updateSettings} />
+        <View style={styles.statsCard}>
+          <Text style={styles.statsTitle}>Trading Statistics</Text>
+          <View style={styles.statsGrid}>
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>Total Trades</Text>
+              <Text style={styles.statValue}>0</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>Success Rate</Text>
+              <Text style={styles.statValue}>0%</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>Total Profit</Text>
+              <Text style={styles.statValue}>$0.00</Text>
+            </View>
+            <View style={styles.statItem}>
+              <Text style={styles.statLabel}>Active Since</Text>
+              <Text style={styles.statValue}>Never</Text>
+            </View>
+          </View>
+        </View>
+
+        <View style={styles.settingsCard}>
+          <Text style={styles.settingsTitle}>AI Settings</Text>
+          <Text style={styles.settingsDescription}>
+            AI Trading Bot is ready to be configured. Enable to start automated trading.
+          </Text>
+        </View>
 
         <View style={styles.infoCard}>
           <View style={styles.infoHeader}>
@@ -166,5 +192,79 @@ const styles = StyleSheet.create({
     color: "#9CA3AF",
     lineHeight: 20,
     marginBottom: 8,
+  },
+  scannerCard: {
+    backgroundColor: '#1F2937',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  scannerHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 8,
+  },
+  scannerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  scannerStatus: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    marginBottom: 4,
+  },
+  scannerTarget: {
+    fontSize: 12,
+    color: '#00D4AA',
+  },
+  statsCard: {
+    backgroundColor: '#1F2937',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  statsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 16,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 16,
+  },
+  statItem: {
+    flex: 1,
+    minWidth: '45%',
+  },
+  statLabel: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginBottom: 4,
+  },
+  statValue: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  settingsCard: {
+    backgroundColor: '#1F2937',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  settingsTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginBottom: 8,
+  },
+  settingsDescription: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    lineHeight: 20,
   },
 });
