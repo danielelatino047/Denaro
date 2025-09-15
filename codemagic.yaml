@@ -17,7 +17,7 @@ workflows:
         PACKAGE_NAME: "com.arbitrageswap.ai"
         NODE_ENV: "development"
         EXPO_PUBLIC_BUNDLE_IDENTIFIER: "com.arbitrageswap.ai"
-      node: 20.18.0
+      node: 18.20.4
       java: 17
       xcode: latest
     cache:
@@ -98,7 +98,7 @@ workflows:
           npm cache clean --force
           
           # Install specific Expo CLI version compatible with SDK 53
-          npm install -g @expo/cli@54.0.5 --force
+          npm install -g @expo/cli@0.22.0 --force
           
           # Add npm global bin to PATH explicitly
           export PATH="$(npm config get prefix)/bin:$PATH"
@@ -391,7 +391,7 @@ workflows:
       vars:
         EXPO_TOKEN: $EXPO_TOKEN
         PACKAGE_NAME: "com.arbitrageswap.ai"
-      node: 20.18.0
+      node: 18.20.4
       java: 17
     scripts:
       - name: Install Dependencies
