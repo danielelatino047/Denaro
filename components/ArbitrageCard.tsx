@@ -7,7 +7,7 @@ import {
   TextInput,
   Modal,
 } from "react-native";
-import { MaterialIcons, Ionicons } from "@expo/vector-icons";
+
 import { TrendingUp, ArrowRight, Zap, X } from "lucide-react-native";
 import { ArbitrageOpportunity, useArbitrageStore } from "@/stores/arbitrage-store";
 import { useSettingsStore } from "@/stores/settings-store";
