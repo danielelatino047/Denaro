@@ -13,10 +13,8 @@ workflows:
         - pattern: 'develop'
           include: true
     environment:
-      android_signing:
-        - keystore_reference
       groups:
-        - google_play
+        - google_play # Optional: nur wenn Sie Google Play Credentials haben
       vars:
         PACKAGE_NAME: "com.yourcompany.yourapp" # Anpassen an Ihre App
       node: 20.11.0
@@ -46,7 +44,7 @@ workflows:
     publishing:
       email:
         recipients:
-          - your-email@example.com # Ihre E-Mail-Adresse
+          - daniele.latino047@gmail.com
         notify:
           success: true
           failure: true
@@ -166,7 +164,7 @@ workflows:
     publishing:
       email:
         recipients:
-          - your-email@example.com # Ihre E-Mail-Adresse
+          - daniele.latino047@gmail.com
         notify:
           success: true
           failure: true
