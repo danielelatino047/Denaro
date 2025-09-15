@@ -143,67 +143,25 @@ workflows:
           echo "Package.json main entry:"
           grep '"main"' package.json || echo "No main entry found"
           
-      - name: Generate Android Project (Prebuild)
+      - name: Generate Android Project (Ultimate Prebuild)
         script: |
-          echo "=== Generating Android Project ==="
+          echo "=== Running Ultimate Prebuild Fix ==="
           
-          # Set environment variables for prebuild
-          export EXPO_NO_TELEMETRY=1
-          export EXPO_NO_CACHE=1
-          export NODE_OPTIONS="--max-old-space-size=8192"
+          # Make the ultimate prebuild script executable
+          chmod +x ultimate-prebuild.js
           
-          # Ensure we have the correct config plugins for current versions
-          echo "Installing required prebuild dependencies..."
-          npm install @expo/config-plugins@54.0.1 @expo/prebuild-config@54.0.3 --save-dev --legacy-peer-deps --force
-          
-          # Clear any existing android directory
-          rm -rf android
-          
-          # Run prebuild with detailed logging and error handling
-          echo "Running expo prebuild..."
-          
-          # Try expo command, fallback to npx if needed
-          EXPO_CMD="expo"
-          if ! command -v expo &> /dev/null; then
-            echo "expo command not found, using npx"
-            EXPO_CMD="npx expo"
-          fi
-          
-          $EXPO_CMD prebuild --platform android --clean --no-install 2>&1 | tee prebuild.log || {
-            echo "Prebuild failed, analyzing error..."
-            
-            # Show the last 50 lines of the log for debugging
-            echo "Last 50 lines of prebuild log:"
-            tail -50 prebuild.log
-            
-              # Try to fix common dependency issues
-            echo "Attempting to fix dependency conflicts..."
-            npm ci --legacy-peer-deps || npm install --legacy-peer-deps --force
-            
-            # Try prebuild again with different options
-            echo "Retrying prebuild with npm install..."
-            $EXPO_CMD prebuild --platform android --clean --no-install || {
-              echo "Second prebuild attempt failed, trying manual dependency resolution..."
-              
-              # Manual dependency resolution with current versions
-              npm install @expo/config-plugins@54.0.1 @expo/prebuild-config@54.0.3 --save-dev --force
-              
-              # Final attempt
-              $EXPO_CMD prebuild --platform android --clean --no-install
-            }
-          }
+          # Run the ultimate prebuild fix
+          node ultimate-prebuild.js
           
           # Verify android directory was created
           if [ ! -d "android" ]; then
-            echo "ERROR: Android directory not created after prebuild!"
+            echo "ERROR: Ultimate prebuild failed - Android directory not created!"
             echo "Current directory contents:"
             ls -la
-            echo "Checking prebuild log for errors:"
-            cat prebuild.log | grep -i error || echo "No explicit errors found in log"
             exit 1
           fi
           
-          echo "Android project generated successfully!"
+          echo "Ultimate prebuild completed successfully!"
           echo "Android directory structure:"
           ls -la android/
           
