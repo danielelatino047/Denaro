@@ -77,7 +77,7 @@ workflows:
           echo "Installing dependencies with current package.json versions..."
           
           # Install all dependencies with proper conflict resolution
-          npm install --legacy-peer-deps --force
+          npm ci --legacy-peer-deps || npm install --legacy-peer-deps --force
           
           # Verify critical packages
           echo "Verifying package installation:"
@@ -97,8 +97,8 @@ workflows:
           # Clear npm cache
           npm cache clean --force
           
-          # Install latest stable Expo CLI compatible with current setup
-          npm install -g @expo/cli@latest --force
+          # Install specific Expo CLI version compatible with SDK 53
+          npm install -g @expo/cli@54.0.5 --force
           
           # Add npm global bin to PATH explicitly
           export PATH="$(npm config get prefix)/bin:$PATH"
@@ -117,7 +117,7 @@ workflows:
           expo --version || {
             echo "Expo CLI still not accessible, trying alternative installation"
             # Alternative: Install locally and use npx
-            npm install @expo/cli@latest --save-dev
+            npm install @expo/cli@54.0.5 --save-dev
             npx expo --version
           }
           
@@ -154,7 +154,7 @@ workflows:
           
           # Ensure we have the correct config plugins for current versions
           echo "Installing required prebuild dependencies..."
-          npm install @expo/config-plugins@^54.0.1 @expo/prebuild-config@^54.0.3 --save-dev --legacy-peer-deps --force
+          npm install @expo/config-plugins@54.0.1 @expo/prebuild-config@54.0.3 --save-dev --legacy-peer-deps --force
           
           # Clear any existing android directory
           rm -rf android
@@ -176,21 +176,20 @@ workflows:
             echo "Last 50 lines of prebuild log:"
             tail -50 prebuild.log
             
-            # Try to fix common dependency issues
+              # Try to fix common dependency issues
             echo "Attempting to fix dependency conflicts..."
-            npm install --legacy-peer-deps --force
+            npm ci --legacy-peer-deps || npm install --legacy-peer-deps --force
             
             # Try prebuild again with different options
             echo "Retrying prebuild with npm install..."
-            $EXPO_CMD prebuild --platform android --clean || {
+            $EXPO_CMD prebuild --platform android --clean --no-install || {
               echo "Second prebuild attempt failed, trying manual dependency resolution..."
               
               # Manual dependency resolution with current versions
-              npm install @react-native/gradle-plugin --save-dev --force
-              npm install @expo/config-plugins@^54.0.1 @expo/prebuild-config@^54.0.3 --save-dev --force
+              npm install @expo/config-plugins@54.0.1 @expo/prebuild-config@54.0.3 --save-dev --force
               
               # Final attempt
-              $EXPO_CMD prebuild --platform android --clean
+              $EXPO_CMD prebuild --platform android --clean --no-install
             }
           }
           
