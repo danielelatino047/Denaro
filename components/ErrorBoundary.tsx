@@ -1,7 +1,7 @@
 import React, { Component, ReactNode } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { AlertTriangle, RefreshCw, Copy } from 'lucide-react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 
 interface Props {
   children: ReactNode;
@@ -93,7 +93,7 @@ class ErrorBoundary extends Component<Props, State> {
           <ScrollView contentContainerStyle={styles.scrollContent}>
             <View style={styles.content}>
               <View style={styles.iconContainer}>
-                <AlertTriangle size={48} color="#EF4444" />
+                <MaterialIcons name="error" size={48} color="#EF4444" />
               </View>
               
               <Text style={styles.title}>App Error Detected</Text>
@@ -127,13 +127,13 @@ class ErrorBoundary extends Component<Props, State> {
               
               <View style={styles.buttonContainer}>
                 <TouchableOpacity style={styles.primaryButton} onPress={this.handleReset}>
-                  <RefreshCw size={16} color="#FFFFFF" />
+                  <MaterialIcons name="refresh" size={16} color="#FFFFFF" />
                   <Text style={styles.primaryButtonText}>Try Again</Text>
                 </TouchableOpacity>
                 
                 {__DEV__ && (
                   <TouchableOpacity style={styles.secondaryButton} onPress={this.handleCopyError}>
-                    <Copy size={16} color="#9CA3AF" />
+                    <MaterialIcons name="content-copy" size={16} color="#9CA3AF" />
                     <Text style={styles.secondaryButtonText}>Copy Error Details</Text>
                   </TouchableOpacity>
                 )}

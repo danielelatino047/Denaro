@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -10,20 +10,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialIcons } from "@expo/vector-icons";
 
 export default function ArbitrageScreen() {
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading] = useState(false);
   const [opportunities] = useState<any[]>([]);
   const [totalProfit] = useState(0);
   const [isLiveMode] = useState(false);
   const insets = useSafeAreaInsets();
-
-  useEffect(() => {
-    // Simulate loading
-    const timer = setTimeout(() => {
-      setIsLoading(false);
-    }, 2000);
-    
-    return () => clearTimeout(timer);
-  }, []);
 
 
 

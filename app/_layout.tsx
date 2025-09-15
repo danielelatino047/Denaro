@@ -1,29 +1,12 @@
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { StyleSheet, View, Text, ActivityIndicator, Platform } from "react-native";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import ErrorBoundary from "../components/ErrorBoundary";
-import "../components/GlobalErrorHandler";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
-
-// Create query client with error handling
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: 1,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      refetchOnWindowFocus: false,
-    },
-    mutations: {
-      retry: 1,
-    },
-  },
-});
 
 const styles = StyleSheet.create({
   container: {
@@ -46,62 +29,40 @@ const styles = StyleSheet.create({
     fontSize: 12,
     textAlign: 'center',
   },
-  errorText: {
-    color: '#EF4444',
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  errorDetails: {
-    color: '#F87171',
-    fontSize: 14,
-    marginBottom: 16,
-    textAlign: 'center',
-  },
 });
 
 function RootLayoutNav() {
   const [isAppReady, setIsAppReady] = useState(false);
-  const [initError, setInitError] = useState<string | null>(null);
-
-  const initializeApp = useCallback(async () => {
-    try {
-      console.log('🚀 Starting app initialization...');
-      
-      // Simplified initialization - just wait a moment and mark as ready
-      // This avoids any potential import or store initialization issues
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      console.log('✅ Basic app initialization complete');
-      
-      setIsAppReady(true);
-      
-      // Hide splash screen after initialization
-      await SplashScreen.hideAsync();
-      console.log('✅ App ready, splash screen hidden');
-      
-    } catch (error) {
-      console.error('❌ App initialization error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown initialization error';
-      console.error('Error details:', error);
-      
-      // Set a more user-friendly error message
-      setInitError(`Initialization failed: ${errorMessage}`);
-      
-      // Still mark as ready to prevent infinite loading
-      setIsAppReady(true);
-      
-      try {
-        await SplashScreen.hideAsync();
-      } catch (splashError) {
-        console.error('Error hiding splash screen:', splashError);
-      }
-    }
-  }, []);
 
   useEffect(() => {
+    async function initializeApp() {
+      try {
+        console.log('🚀 Starting minimal app initialization...');
+        
+        // Minimal initialization - just wait a moment
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        console.log('✅ App initialization complete');
+        setIsAppReady(true);
+        
+        // Hide splash screen
+        await SplashScreen.hideAsync();
+        console.log('✅ Splash screen hidden');
+        
+      } catch (error) {
+        console.error('❌ App initialization error:', error);
+        setIsAppReady(true); // Still show the app
+        
+        try {
+          await SplashScreen.hideAsync();
+        } catch (splashError) {
+          console.error('Error hiding splash screen:', splashError);
+        }
+      }
+    }
+
     initializeApp();
-  }, [initializeApp]);
+  }, []);
 
   if (!isAppReady) {
     return (
@@ -111,16 +72,6 @@ function RootLayoutNav() {
         {Platform.OS === 'web' && (
           <Text style={styles.webNotice}>Running in web preview mode</Text>
         )}
-      </View>
-    );
-  }
-
-  if (initError) {
-    return (
-      <View style={styles.loadingContainer}>
-        <Text style={styles.errorText}>Initialization Error</Text>
-        <Text style={styles.errorDetails}>{initError}</Text>
-        <Text style={styles.loadingText}>App will continue with limited functionality</Text>
       </View>
     );
   }
@@ -136,11 +87,9 @@ export default function RootLayout() {
   return (
     <ErrorBoundary>
       <SafeAreaProvider>
-        <QueryClientProvider client={queryClient}>
-          <GestureHandlerRootView style={styles.container}>
-            <RootLayoutNav />
-          </GestureHandlerRootView>
-        </QueryClientProvider>
+        <View style={styles.container}>
+          <RootLayoutNav />
+        </View>
       </SafeAreaProvider>
     </ErrorBoundary>
   );
