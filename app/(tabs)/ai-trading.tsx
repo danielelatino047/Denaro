@@ -1,19 +1,19 @@
-import React, { useState } from "react";
+import React, { useState } from 'react';
 import {
   StyleSheet,
   Text,
   View,
   ScrollView,
   Switch,
-} from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { MaterialIcons } from "@expo/vector-icons";
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { MaterialIcons } from '@expo/vector-icons';
 
 export default function AITradingScreen() {
-  const [isEnabled, setIsEnabled] = useState(false);
-  const [isScanning] = useState(false);
-  const [scanningProgress] = useState(0);
-  const [currentScanTarget] = useState('');
+  const [isEnabled, setIsEnabled] = useState<boolean>(false);
+  const [isScanning] = useState<boolean>(false);
+  const [scanningProgress] = useState<number>(0);
+  const [currentScanTarget] = useState<string>('');
   const insets = useSafeAreaInsets();
   
   const toggleAI = () => {
@@ -25,13 +25,13 @@ export default function AITradingScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>AI Trading Bot</Text>
         <View style={styles.toggleContainer}>
-          <Text style={[styles.toggleLabel, { color: isEnabled ? "#00D4AA" : "#6B7280" }]}>
-            {isEnabled ? "Active" : "Inactive"}
+          <Text style={[styles.toggleLabel, { color: isEnabled ? '#00D4AA' : '#6B7280' }]}>
+            {isEnabled ? 'Active' : 'Inactive'}
           </Text>
           <Switch
             value={isEnabled}
             onValueChange={toggleAI}
-            trackColor={{ false: "#374151", true: "#00D4AA" }}
+            trackColor={{ false: '#374151', true: '#00D4AA' }}
             thumbColor="#FFFFFF"
           />
         </View>
@@ -101,97 +101,32 @@ export default function AITradingScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#111827",
+    backgroundColor: '#111827',
   },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 20,
     paddingVertical: 16,
   },
   title: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "#FFFFFF",
+    fontWeight: 'bold',
+    color: '#FFFFFF',
   },
   toggleContainer: {
-    flexDirection: "row",
-    alignItems: "center",
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 12,
   },
   toggleLabel: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: '600',
   },
   scrollView: {
     flex: 1,
     paddingHorizontal: 20,
-  },
-  statusCard: {
-    backgroundColor: "#1F2937",
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 20,
-  },
-  statusHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    marginBottom: 12,
-  },
-  statusTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#FFFFFF",
-  },
-  statusDescription: {
-    fontSize: 14,
-    color: "#9CA3AF",
-    lineHeight: 20,
-  },
-  warningCard: {
-    backgroundColor: "#FEF3C7",
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 20,
-    marginBottom: 20,
-  },
-  warningTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#92400E",
-    marginBottom: 8,
-  },
-  warningText: {
-    fontSize: 14,
-    color: "#92400E",
-    lineHeight: 20,
-    marginTop: 8,
-  },
-  infoCard: {
-    backgroundColor: "#1F2937",
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 20,
-    marginBottom: 20,
-  },
-  infoHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    marginBottom: 12,
-  },
-  infoTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#FFFFFF",
-  },
-  infoText: {
-    fontSize: 14,
-    color: "#9CA3AF",
-    lineHeight: 20,
-    marginBottom: 8,
   },
   scannerCard: {
     backgroundColor: '#1F2937',
@@ -265,6 +200,34 @@ const styles = StyleSheet.create({
   settingsDescription: {
     fontSize: 14,
     color: '#9CA3AF',
+    lineHeight: 20,
+  },
+  infoCard: {
+    backgroundColor: '#1F2937',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+  },
+  infoHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  infoTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    lineHeight: 20,
+    marginBottom: 8,
+  },
+  warningText: {
+    fontSize: 14,
+    color: '#F59E0B',
     lineHeight: 20,
   },
 });
